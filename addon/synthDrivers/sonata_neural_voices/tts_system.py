@@ -96,6 +96,28 @@ class SonataVoice:
             properties={"quality": quality.lower()},
         )
 
+
+    def _normalize_config(self, original_path):
+        import json
+        with open(original_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        needs_update = False
+        if 'phoneme_map' not in data:
+            data['phoneme_map'] = {}
+            needs_update = True
+        p_map = data.get('phoneme_id_map', {})
+        invalid_keys = [k for k in p_map.keys() if len(k) > 1]
+        if invalid_keys:
+            for k in invalid_keys:
+                del data['phoneme_id_map'][k]
+            needs_update = True
+        if needs_update:
+            normalized_path = Path(original_path).with_suffix('.sonata.json')
+            with open(normalized_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, separators=(',', ':'))
+            return normalized_path
+        return original_path
+
     def load(self):
         if self.remote_id:
             return
@@ -106,7 +128,7 @@ class SonataVoice:
                 f"Could not load voice from `{os.fspath(self.location)}`"
             )
         voice_info = grpc_client.load_voice(
-            os.fspath(self.config_path)
+            os.fspath(self._normalize_config(self.config_path))
         ).result()
         self.remote_id = voice_info.voice_id
         self.supports_streaming_output = voice_info.supports_streaming_output

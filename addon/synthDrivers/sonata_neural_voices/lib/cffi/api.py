@@ -4,13 +4,6 @@ from .error import CDefError
 from . import model
 
 try:
-    callable
-except NameError:
-    # Python 3.1
-    from collections import Callable
-    callable = lambda x: isinstance(x, Callable)
-
-try:
     basestring
 except NameError:
     # Python 3.x
@@ -20,7 +13,7 @@ _unspecified = object()
 
 
 
-class FFI(object):
+class FFI:
     r'''
     The main top-level class that you instantiate once, or once per module.
 
@@ -414,7 +407,7 @@ class FFI(object):
         if (replace_with.startswith('*')
                 and '&[' in self._backend.getcname(cdecl, '&')):
             replace_with = '(%s)' % replace_with
-        elif replace_with and not replace_with[0] in '[(':
+        elif replace_with and replace_with[0] not in '[(':
             replace_with = ' ' + replace_with
         return self._backend.getcname(cdecl, replace_with)
 
@@ -693,7 +686,8 @@ class FFI(object):
             raise TypeError("emit_c_code() is only for C extension modules, "
                             "not for dlopen()-style pure Python modules")
         recompile(self, module_name, source,
-                  c_file=filename, call_c_compiler=False, **kwds)
+                  c_file=filename, call_c_compiler=False,
+                  uses_ffiplatform=False, **kwds)
 
     def emit_python_code(self, filename):
         from .recompiler import recompile
@@ -705,7 +699,8 @@ class FFI(object):
             raise TypeError("emit_python_code() is only for dlopen()-style "
                             "pure Python modules, not for C extension modules")
         recompile(self, module_name, source,
-                  c_file=filename, call_c_compiler=False, **kwds)
+                  c_file=filename, call_c_compiler=False,
+                  uses_ffiplatform=False, **kwds)
 
     def compile(self, tmpdir='.', verbose=0, target=None, debug=None):
         """The 'target' argument gives the final file name of the
@@ -907,7 +902,7 @@ def _make_ffi_library(ffi, libname, flags):
                     raise AttributeError(name)
             accessors[name](name)
     #
-    class FFILibrary(object):
+    class FFILibrary:
         def __getattr__(self, name):
             make_accessor(name)
             return getattr(self, name)
