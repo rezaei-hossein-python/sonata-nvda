@@ -100,5 +100,14 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                         sys.path.remove(_TTS_MODULE_DIR)
                     except Exception:
                         pass
+            # Best-effort OS-level cleanup: terminate any lingering sonata-grpc.exe processes
+            try:
+                import subprocess as _subp
+                _subp.run(["taskkill", "/IM", "sonata-grpc.exe", "/F"], check=False, stdout=_subp.DEVNULL, stderr=_subp.DEVNULL)
+            except Exception:
+                try:
+                    log.exception("Failed to taskkill sonata-grpc.exe processes", exc_info=True)
+                except Exception:
+                    pass
         except Exception:
             log.exception("Failed in global plugin terminate cleanup", exc_info=True)
