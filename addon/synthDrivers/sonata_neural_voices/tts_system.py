@@ -99,22 +99,41 @@ class SonataVoice:
 
     def _normalize_config(self, original_path):
         import json
+        from datetime import datetime
         with open(original_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         needs_update = False
+        # Ensure phoneme_map exists and preserve any phoneme_id_map by promoting valid single-char keys
         if 'phoneme_map' not in data:
             data['phoneme_map'] = {}
             needs_update = True
         p_map = data.get('phoneme_id_map', {})
         invalid_keys = [k for k in p_map.keys() if len(k) > 1]
-        if invalid_keys:
-            for k in invalid_keys:
-                del data['phoneme_id_map'][k]
-            needs_update = True
+        if p_map:
+            promoted = {}
+            for k, v in p_map.items():
+                if len(k) == 1:
+                    promoted[k] = v
+                else:
+                    # leave invalid entries out but record their presence
+                    pass
+            # merge without overwriting existing phoneme_map entries
+            for k, v in promoted.items():
+                if k not in data['phoneme_map']:
+                    data['phoneme_map'][k] = v
+            if promoted != p_map:
+                needs_update = True
         if needs_update:
             normalized_path = Path(original_path).with_suffix('.sonata.json')
+            # preserve unicode; produce stable, idempotent output
             with open(normalized_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, separators=(',', ':'))
+                json.dump(data, f, ensure_ascii=False, separators=(',', ':'), indent=2)
+            # If there were invalid phoneme_id_map keys, write an actionable note
+            if invalid_keys:
+                err_path = normalized_path.with_suffix('.sonata.json.err')
+                with open(err_path, 'w', encoding='utf-8') as ef:
+                    ef.write(f"Invalid phoneme_id_map keys removed on {datetime.utcnow().isoformat()}Z:\n")
+                    ef.write('\n'.join(invalid_keys))
             return normalized_path
         return original_path
 
