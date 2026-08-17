@@ -16,17 +16,38 @@ def local_normalize(original_path):
         data['phoneme_map'] = {}
         needs_update = True
     p_map = data.get('phoneme_id_map', {})
+    # Collect invalid multi-char keys
     invalid_keys = [k for k in p_map.keys() if len(k) > 1]
     if p_map:
         promoted = {}
         for k, v in p_map.items():
             if len(k) == 1:
                 promoted[k] = v
+            else:
+                # skip multi-char entries
+                pass
         for k, v in promoted.items():
             if k not in data['phoneme_map']:
                 data['phoneme_map'][k] = v
         if promoted != p_map:
             needs_update = True
+    # Remove any multi-character keys if present in phoneme_map
+    existing_invalid = [k for k in list(data.get('phoneme_map', {}).keys()) if len(k) > 1]
+    if existing_invalid:
+        invalid_keys.extend([k for k in existing_invalid if k not in invalid_keys])
+        for k in existing_invalid:
+            try:
+                del data['phoneme_map'][k]
+            except KeyError:
+                pass
+        needs_update = True
+    # drop phoneme_id_map entirely in normalized output
+    if 'phoneme_id_map' in data:
+        try:
+            del data['phoneme_id_map']
+        except Exception:
+            pass
+        needs_update = True
     if needs_update:
         normalized_path = Path(original_path).with_suffix('.sonata.json')
         with open(normalized_path, 'w', encoding='utf-8') as f:
