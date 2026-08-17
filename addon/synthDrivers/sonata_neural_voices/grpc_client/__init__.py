@@ -5,6 +5,7 @@ import atexit
 import os
 import subprocess
 import time
+import sys
 from pathlib import Path
 
 import globalVars
@@ -139,14 +140,6 @@ async def initialize():
 
 @atexit.register
 def terminate():
-    """Attempt a graceful shutdown of any owned or recorded sonata-grpc server.
-
-    On Windows, prefer sending a CTRL_BREAK_EVENT to allow the server to exit cleanly
-    (this relies on the server handling console break events). Fall back to a hard
-    terminate/kill if the graceful signal does not stop the process.
-    """
-    import signal
-
     global CHANNEL, GRPC_SERVER_PROCESS, SONATA_GRPC_SERVER_PORT
     pidfile = os.path.join(SONATA_VOICES_BASE_DIR, "sonata_grpc.pid")
     SONATA_GRPC_SERVER_PORT = None
@@ -158,79 +151,31 @@ def terminate():
             pass
         CHANNEL = None
 
-    def _try_graceful_shutdown_by_pid(pid):
-        """Try graceful shutdown using CTRL_BREAK (Windows) or SIGTERM otherwise.
-        Returns True if the process no longer exists after the attempts, False otherwise."""
-        try:
-            # Prefer psutil if available for nicer control
-            try:
-                import psutil
-
-                p = psutil.Process(pid)
-                if p.is_running():
-                    # On Windows prefer CTRL_BREAK for console-based servers
-                    if sys.platform == "win32":
-                        try:
-                            p.send_signal(signal.CTRL_BREAK_EVENT)
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            p.terminate()
-                        except Exception:
-                            pass
-                    # wait briefly for graceful exit
-                    try:
-                        p.wait(timeout=3)
-                        return not p.is_running()
-                    except Exception:
-                        pass
-            except Exception:
-                # psutil not available or failed; fall back to os.kill
-                try:
-                    if sys.platform == "win32":
-                        try:
-                            os.kill(pid, signal.CTRL_BREAK_EVENT)
-                        except Exception:
-                            pass
-                    else:
-                        try:
-                            os.kill(pid, signal.SIGTERM)
-                        except Exception:
-                            pass
-                    # give it a moment
-                    import time
-
-                    time.sleep(1.5)
-                except Exception:
-                    pass
-            # Final existence check
-            try:
-                # On Windows, os.kill(pid, 0) isn't reliable; use psutil if available
-                import psutil as _ps
-
-                return not _ps.pid_exists(pid)
-            except Exception:
-                try:
-                    os.kill(pid, 0)
-                    return True
-                except Exception:
-                    return False
-        except Exception:
-            return False
-
     # Prefer terminating the subprocess handle we own
     if GRPC_SERVER_PROCESS is not None:
         try:
             pid = getattr(GRPC_SERVER_PROCESS, "pid", None)
-            # If we have a psutil.Process, use send_signal; otherwise attempt CTRL_BREAK then terminate
-            if sys.platform == "win32":
-                try:
-                    # Try graceful break first
-                    if pid is not None:
-                        _try_graceful_shutdown_by_pid(pid)
-                except Exception:
-                    pass
+            # Attempt graceful shutdown on Windows first
+            try:
+                import signal, time
+                if sys.platform == "win32" and pid is not None:
+                    try:
+                        import psutil
+                        p = psutil.Process(pid)
+                        if p.is_running():
+                            try:
+                                p.send_signal(signal.CTRL_BREAK_EVENT)
+                                p.wait(timeout=2)
+                            except Exception:
+                                pass
+                    except Exception:
+                        try:
+                            os.kill(pid, signal.CTRL_BREAK_EVENT)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
             try:
                 GRPC_SERVER_PROCESS.terminate()
             except Exception:
@@ -240,8 +185,7 @@ def terminate():
                     log.exception("Failed to terminate Sonata GRPC process via handle", exc_info=True)
         except Exception:
             log.exception("Failed while attempting to stop owned Sonata GRPC process", exc_info=True)
-        finally:
-            GRPC_SERVER_PROCESS = None
+        GRPC_SERVER_PROCESS = None
 
     # If pidfile exists, and contains a pid, try a best-effort cleanup when it appears to belong to this profile
     try:
@@ -252,39 +196,42 @@ def terminate():
                 try:
                     existing_port = int(data[0])
                     existing_pid = int(data[1])
-                    # Attempt to contact the server on the recorded port; if it's listening, attempt graceful shutdown first
-                    import socket
-
+                    # Attempt to kill only if process still exists and appears to be our server (port check)
+                    import socket, signal
                     try:
                         s = socket.socket()
                         s.settimeout(0.5)
                         s.connect(("127.0.0.1", existing_port))
                         s.close()
-                        # Process still listening; try graceful shutdown
+                        # Process still listening; try to terminate gracefully first
                         try:
-                            if _try_graceful_shutdown_by_pid(existing_pid):
-                                pass
-                            else:
-                                # Prefer psutil if available for graceful termination then wait
-                                try:
-                                    import psutil
+                            # Prefer psutil if available for graceful termination
+                            import psutil
 
-                                    p = psutil.Process(existing_pid)
-                                    if p.is_running():
-                                        p.terminate()
+                            p = psutil.Process(existing_pid)
+                            if p.is_running():
+                                try:
+                                    if sys.platform == "win32":
+                                        p.send_signal(signal.CTRL_BREAK_EVENT)
                                         try:
                                             p.wait(timeout=2)
                                         except Exception:
-                                            p.kill()
+                                            pass
+                                except Exception:
+                                    pass
+                                try:
+                                    p.terminate()
+                                    p.wait(timeout=2)
                                 except Exception:
                                     try:
-                                        os.kill(existing_pid, signal.SIGTERM)
+                                        p.kill()
                                     except Exception:
                                         pass
-                        
-                        
-                        
-                        
+                        except Exception:
+                            try:
+                                os.kill(existing_pid, signal.SIGTERM)
+                            except Exception:
+                                pass
                     except Exception:
                         # Not listening anymore
                         pass
