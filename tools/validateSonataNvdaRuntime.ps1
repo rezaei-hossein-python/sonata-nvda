@@ -28,6 +28,10 @@ Write-Log 'Starting Sonata NVDA runtime validation harness (dry-run safety check
 if (-not (Test-Path $RepoRoot)) { Write-Error "Repo root not found: $RepoRoot"; exit 2 }
 if (-not (Test-Path $AddonPath)) { Write-Error "Addon not found: $AddonPath"; exit 2 }
 
+# Initial profile isolation state (will be PENDING until runtime checks)
+$PROFILE_ISOLATION_STATE_BEFORE_RUN = 'PENDING'
+$PROFILE_ISOLATION_CONFIRMED = $false
+
 # Validate addon hash
 Write-Log 'Validating .nvda-addon SHA256...'
 try {
@@ -107,11 +111,11 @@ Write-Log "Wrote baseline process list to $procBefore"
 
 # Ensure not touching daily NVDA profile: check running NVDA processes
 $nvdaRunning = Get-Process -Name nvda -ErrorAction SilentlyContinue
+$NVDA_CURRENTLY_RUNNING = $false
 if ($nvdaRunning) {
-    Write-Log 'NVDA process(es) detected. This harness will not forcibly terminate your daily NVDA.'
-    Write-Output "Please close your daily NVDA instance if you want this test to run a second NVDA instance."
-    $resp = Read-Host "NVDA is running. Close it now and press ENTER to continue, or press C to cancel test"
-    if ($resp -and $resp.ToUpper().StartsWith('C')) { Write-Log 'User cancelled test due to running NVDA'; exit 0 }
+    $NVDA_CURRENTLY_RUNNING = $true
+    Write-Error 'NVDA process(es) detected. This harness will NOT continue while NVDA is running. Close your daily NVDA and re-run this harness.'
+    exit 6
 }
 
 # Install addon into disposable profile (extract .nvda-addon ZIP)
@@ -124,24 +128,52 @@ try {
 }
 Write-Log "Addon extracted to $AddonInstallDir"
 
-# Locate a sample Lessac/Piper voice in repo (search for .onnx or voice- dir)
-Write-Log 'Searching repository for a candidate Lessac/Piper voice to copy into disposable profile...'
-$voiceSource = Get-ChildItem -Path $RepoRoot -Recurse -Include *.onnx,*.json -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'voice-' -or $_.FullName -match 'lessac' } | Select-Object -First 1
-if ($voiceSource) {
-    Write-Log "Found possible voice file: $($voiceSource.FullName)"
-    # copy entire voice directory if applicable
-    $voiceDirCandidate = $voiceSource.Directory.FullName
-    $targetVoiceDir = Join-Path $VoiceDir (Split-Path $voiceDirCandidate -Leaf)
-    Copy-Item -Recurse -Force -Path $voiceDirCandidate -Destination $targetVoiceDir
-    # compute hashes
-    $srcHash = (Get-FileHash -Algorithm SHA256 $voiceSource.FullName).Hash
-    $copyFile = Join-Path $targetVoiceDir $voiceSource.Name
-    $copyHash = (Get-FileHash -Algorithm SHA256 $copyFile).Hash
-    "voice_source=$($voiceSource.FullName)" | Out-File -FilePath (Join-Path $LogsDir 'voice-source.txt') -Encoding utf8
-    "src_hash=$srcHash`ncopy_hash=$copyHash" | Out-File -FilePath (Join-Path $LogsDir 'voice-hashes.txt') -Encoding utf8
-    Write-Log "Copied voice directory to $targetVoiceDir and recorded hashes"
+# Locate Lessac/Piper voice in archived research location
+Write-Log 'Searching archive for Lessac/Piper voice files under C:\projects-archive\nvda-tts-legacy'
+$lessacRoot = 'C:\projects-archive\nvda-tts-legacy'
+$lessacOnnxName = 'en_US-lessac-low.onnx'
+$lessacJsonName = 'en_US-lessac-low.onnx.json'
+$LESSAC_FOUND = $false
+$LESSAC_SOURCE_ONNX = ''
+$LESSAC_SOURCE_JSON = ''
+
+if (Test-Path $lessacRoot) {
+    $onnxCandidates = Get-ChildItem -Path $lessacRoot -Recurse -Filter $lessacOnnxName -ErrorAction SilentlyContinue
+    foreach ($onnx in $onnxCandidates) {
+        $candidateJson = Join-Path $onnx.Directory.FullName $lessacJsonName
+        if (Test-Path $candidateJson) {
+            $LESSAC_FOUND = $true
+            $LESSAC_SOURCE_ONNX = $onnx.FullName
+            $LESSAC_SOURCE_JSON = $candidateJson
+            break
+        }
+    }
 } else {
-    Write-Log 'No voice file discovered automatically. You will be prompted later to select or install a voice into the disposable profile.'
+    Write-Log "Archive root not found: $lessacRoot"
+}
+
+if ($LESSAC_FOUND) {
+    Write-Log "Found Lessac source ONNX: $LESSAC_SOURCE_ONNX"
+    Write-Log "Found Lessac source JSON: $LESSAC_SOURCE_JSON"
+    # Determine Sonata destination from code: SONATA_VOICES_DIR = <configPath>/sonata/voices/piper
+    $destVoiceBase = Join-Path $ProfileDir 'sonata\voices\piper'
+    New-Item -ItemType Directory -Path $destVoiceBase -Force | Out-Null
+    $destOnnx = Join-Path $destVoiceBase $lessacOnnxName
+    $destJson = Join-Path $destVoiceBase $lessacJsonName
+    Copy-Item -Path $LESSAC_SOURCE_ONNX -Destination $destOnnx -Force
+    Copy-Item -Path $LESSAC_SOURCE_JSON -Destination $destJson -Force
+    # compute hashes
+    $srcOnnxHash = (Get-FileHash -Algorithm SHA256 $LESSAC_SOURCE_ONNX).Hash
+    $copyOnnxHash = (Get-FileHash -Algorithm SHA256 $destOnnx).Hash
+    $srcJsonHash = (Get-FileHash -Algorithm SHA256 $LESSAC_SOURCE_JSON).Hash
+    $copyJsonHash = (Get-FileHash -Algorithm SHA256 $destJson).Hash
+    "lessac_source_onnx=$LESSAC_SOURCE_ONNX" | Out-File -FilePath (Join-Path $LogsDir 'lessac-source.txt') -Encoding utf8
+    "srcOnnxHash=$srcOnnxHash`ncopyOnnxHash=$copyOnnxHash`nsrcJsonHash=$srcJsonHash`ncopyJsonHash=$copyJsonHash" | Out-File -FilePath (Join-Path $LogsDir 'lessac-hashes.txt') -Encoding utf8
+    Write-Log "Copied Lessac voice to $destVoiceBase and recorded hashes"
+    $LESSAC_DESTINATION = $destVoiceBase
+} else {
+    Write-Log 'Lessac voice pair not found in archive. This is a blocker for the runtime validation.'
+    $LESSAC_DESTINATION = ''
 }
 
 # Prepare pidfile path location used by addon (SONATA_VOICES_BASE_DIR uses NVDA config path)
@@ -152,18 +184,7 @@ $pidfilePath = Join-Path $ProfileDir 'sonata\sonata_grpc.pid'
 function NetstatTo($path) { netstat -ano | Out-File -FilePath $path -Encoding utf8 }
 NetstatTo (Join-Path $LogsDir 'netstat-before.txt')
 
-# Launch NVDA using portable/config options if supported
 Write-Log 'Preparing to launch disposable NVDA instance. Follow prompts when NVDA UI appears.'
-$nvdaArgs = @()
-if ($SupportsPortable) { $nvdaArgs += '--portable' }
-# If there is a known configdir option, use it (best-effort). Common NVDA 2026 supports --configDir or --config
-$hasConfigArg = $false
-if ($helpText -match '--configdir') { $nvdaArgs += '--configdir'; $nvdaArgs += $ProfileDir; $hasConfigArg = $true }
-elseif ($helpText -match '--configdir=') { $nvdaArgs += "--configdir=$ProfileDir"; $hasConfigArg = $true }
-elseif ($helpText -match '--config') { $nvdaArgs += '--config'; $nvdaArgs += $ProfileDir; $hasConfigArg = $true }
-
-# If no explicit config option found, fall back to --portable and set NVDA's appdata via environment (best-effort)
-$envVars = Get-ChildItem env: | ForEach-Object { $_ }
 
 # Final check: ask user to confirm launch
 Write-Output "About to launch NVDA from: $NvdaExe"
@@ -174,12 +195,11 @@ if ($ok -and $ok.ToUpper().StartsWith('C')) { Write-Log 'User cancelled before N
 # Start NVDA and capture process — ensure PROFILE_ISOLATION_METHOD used
 $nvdaLogPath = Join-Path $LogsDir 'nvda.log'
 $procAfterStartFile = Join-Path $LogsDir 'process-after-start.txt'
-# Build safe argument list using confirmed config-path method
+# Build safe argument list using confirmed config-path method (required pattern)
 $nvdaArgs = @()
-$nvdaArgs += "$PROFILE_ISOLATION_METHOD=$ProfileDir"
-if ($FoundLogFile) { $nvdaArgs += "--log-file=$nvdaLogPath"; $nvdaArgs += '--log-level=20' }
-# Disable online addons for test isolation
-$nvdaArgs += '--disable-addons'
+$nvdaArgs += "--config-path=$ProfileDir"
+$nvdaArgs += "--log-file=$nvdaLogPath"
+$nvdaArgs += "--log-level=10"
 
 $startInfo = @{ FilePath = $NvdaExe; ArgumentList = $nvdaArgs; WorkingDirectory = (Split-Path $NvdaExe); }
 Write-Log "Launching NVDA with args: $($nvdaArgs -join ' ')"
