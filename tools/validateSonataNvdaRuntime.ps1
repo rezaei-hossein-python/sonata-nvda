@@ -194,8 +194,25 @@ if ($LESSAC_FOUND) {
     # Determine Sonata destination from code: SONATA_VOICES_DIR = <configPath>/sonata/voices/piper
     $destVoiceBase = Join-Path $ProfileDir 'sonata\voices\piper'
     New-Item -ItemType Directory -Path $destVoiceBase -Force | Out-Null
-    $destOnnx = Join-Path $destVoiceBase $lessacOnnxName
-    $destJson = Join-Path $destVoiceBase $lessacJsonName
+    # Derive voice folder name from ONNX filename using same convention as installer: lang-name-quality
+    $stem = [System.IO.Path]::GetFileNameWithoutExtension($LESSAC_SOURCE_ONNX)
+    $parts = $stem -split '-' 
+    if ($parts.Length -ge 3) {
+        $lang = $parts[0]
+        $name = $parts[1]
+        $quality = $parts[2]
+        # normalize parts: replace - with _ in name/quality
+        $name = $name -replace '-', '_'
+        $quality = $quality -replace '-', '_'
+        $voiceKey = "$lang-$name-$quality"
+    } else {
+        # fallback to simple naming
+        $voiceKey = $stem
+    }
+    $destVoiceDir = Join-Path $destVoiceBase $voiceKey
+    New-Item -ItemType Directory -Path $destVoiceDir -Force | Out-Null
+    $destOnnx = Join-Path $destVoiceDir $lessacOnnxName
+    $destJson = Join-Path $destVoiceDir $lessacJsonName
     Copy-Item -Path $LESSAC_SOURCE_ONNX -Destination $destOnnx -Force
     Copy-Item -Path $LESSAC_SOURCE_JSON -Destination $destJson -Force
     # compute hashes
@@ -203,10 +220,10 @@ if ($LESSAC_FOUND) {
     $copyOnnxHash = (Get-FileHash -Algorithm SHA256 $destOnnx).Hash
     $srcJsonHash = (Get-FileHash -Algorithm SHA256 $LESSAC_SOURCE_JSON).Hash
     $copyJsonHash = (Get-FileHash -Algorithm SHA256 $destJson).Hash
-    "lessac_source_onnx=$LESSAC_SOURCE_ONNX" | Out-File -FilePath (Join-Path $LogsDir 'lessac-source.txt') -Encoding utf8
+    "lessac_source_onnx=$LESSAC_SOURCE_ONNX`nvoice_key=$voiceKey" | Out-File -FilePath (Join-Path $LogsDir 'lessac-source.txt') -Encoding utf8
     "srcOnnxHash=$srcOnnxHash`ncopyOnnxHash=$copyOnnxHash`nsrcJsonHash=$srcJsonHash`ncopyJsonHash=$copyJsonHash" | Out-File -FilePath (Join-Path $LogsDir 'lessac-hashes.txt') -Encoding utf8
-    Write-Log "Copied Lessac voice to $destVoiceBase and recorded hashes"
-    $LESSAC_DESTINATION = $destVoiceBase
+    Write-Log "Copied Lessac voice to $destVoiceDir and recorded hashes"
+    $LESSAC_DESTINATION = $destVoiceDir
 } else {
     Write-Log 'Lessac voice pair not found in archive. This is a blocker for the runtime validation.'
     $LESSAC_DESTINATION = ''
