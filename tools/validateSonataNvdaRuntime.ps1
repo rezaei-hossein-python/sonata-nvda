@@ -120,13 +120,49 @@ if ($nvdaRunning) {
 
 # Install addon into disposable profile (extract .nvda-addon ZIP)
 Write-Log 'Installing .nvda-addon into disposable profile (extracting ZIP)'
+$AddonRoot = Join-Path $AddonInstallDir 'sonata_neural_voices'
+# Ensure clean target
+if (Test-Path $AddonRoot) { Remove-Item -LiteralPath $AddonRoot -Recurse -Force -ErrorAction SilentlyContinue }
+New-Item -ItemType Directory -Path $AddonRoot -Force | Out-Null
 try {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($AddonPath, $AddonInstallDir)
+    # Extract archive contents directly into addons\sonata_neural_voices\ so manifest.ini sits under that folder
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($AddonPath, $AddonRoot)
 } catch {
-    Write-Error ("Failed to extract addon: {0}" -f $_); exit 2
+    Write-Error ("Failed to extract addon into $AddonRoot: {0}" -f $_); exit 2
 }
-Write-Log "Addon extracted to $AddonInstallDir"
+Write-Log "Addon extracted to $AddonRoot"
+
+# Validate prelaunch addon layout
+$MANIFEST_PATH = Join-Path $AddonRoot 'manifest.ini'
+$SYNTH_DRIVER_PATH = Join-Path $AddonRoot 'synthDrivers\sonata_neural_voices\__init__.py'
+$GLOBAL_PLUGIN_PATH = Join-Path $AddonRoot 'globalPlugins\sonata_tts_global_plugin\__init__.py'
+$PRELAUNCH_LAYOUT_VALID = $true
+if (-not (Test-Path $MANIFEST_PATH)) { Write-Error "Missing manifest: $MANIFEST_PATH"; $PRELAUNCH_LAYOUT_VALID = $false }
+if (-not (Test-Path $SYNTH_DRIVER_PATH)) { Write-Error "Missing synth driver: $SYNTH_DRIVER_PATH"; $PRELAUNCH_LAYOUT_VALID = $false }
+if (-not (Test-Path $GLOBAL_PLUGIN_PATH)) { Write-Error "Missing global plugin: $GLOBAL_PLUGIN_PATH"; $PRELAUNCH_LAYOUT_VALID = $false }
+
+if (-not $PRELAUNCH_LAYOUT_VALID) {
+    Write-Error 'Addon prelaunch layout validation failed. Aborting to avoid launching NVDA with incomplete addon.'
+    exit 7
+}
+
+# Parse manifest.ini and verify name
+try {
+    $manifestLines = Get-Content -Path $MANIFEST_PATH -ErrorAction Stop
+    $nameLine = $manifestLines | Where-Object { $_ -match '^\s*name\s*=\s*' } | Select-Object -First 1
+    if ($nameLine -and ($nameLine -match '=\s*(.+)$')) {
+        $manifestName = $Matches[1].Trim()
+        if ($manifestName -ne 'sonata_neural_voices') {
+            Write-Error "manifest.ini name value unexpected: $manifestName"; exit 7
+        }
+    } else {
+        Write-Error 'Could not find name entry in manifest.ini'; exit 7
+    }
+} catch {
+    Write-Error "Failed to parse manifest.ini: $_"; exit 7
+}
+Write-Log 'Addon prelaunch layout and manifest verified.'
 
 # Locate Lessac/Piper voice in archived research location
 Write-Log 'Searching archive for Lessac/Piper voice files under C:\projects-archive\nvda-tts-legacy'
