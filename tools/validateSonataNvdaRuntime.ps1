@@ -52,22 +52,37 @@ if (Test-Path $NvdaDefaultPath) { $NvdaExe = $NvdaDefaultPath } else {
 if (-not $NvdaExe) { Write-Error 'Could not locate nvda.exe on this machine. Aborting.'; exit 2 }
 Write-Log "Found NVDA executable: $NvdaExe"
 
-# Ask NVDA for CLI help to determine portable/config support
-Write-Log 'Querying NVDA for supported command-line options...'
-$helpText = ''
-try {
-    $helpText = & "$NvdaExe" --help 2>&1 | Out-String
-} catch {
-    # Some nvda builds require no-elevation; try capturing output without throwing
-    try { $helpText = & "$NvdaExe" -h 2>&1 | Out-String } catch { $helpText = '' }
-}
-if (-not $helpText) { Write-Log 'Could not capture nvda --help output; proceeding but will validate before launching.' }
+# Determine authoritative NVDA command-line options from installed documentation (do NOT run nvda.exe)
+Write-Log 'Inspecting installed NVDA documentation for supported command-line options...'
+$docDir = Join-Path (Split-Path $NvdaExe -Parent) 'documentation'
+$docFiles = @()
+if (Test-Path $docDir) { $docFiles = Get-ChildItem -Path $docDir -Recurse -Include *.html,*.txt -ErrorAction SilentlyContinue }
 
-$SupportsPortable = $false
-$SupportsConfigDir = $false
-if ($helpText -match '--portable') { $SupportsPortable = $true }
-if ($helpText -match 'config') { $SupportsConfigDir = $true }
-Write-Log "NVDA CLI capabilities: portable=$SupportsPortable, configHint=$SupportsConfigDir"
+$FoundConfigPath = $false
+$FoundLogFile = $false
+$FoundPortable = $false
+foreach ($f in $docFiles) {
+    try {
+        $txt = Get-Content -Path $f.FullName -ErrorAction SilentlyContinue -Raw
+        if ($txt -match '--config-path' -or $txt -match '-c\s+CONFIGPATH' -or $txt -match '-c\s+CONFIG') { $FoundConfigPath = $true }
+        if ($txt -match '--log-file' -or $txt -match '-f\s+LOGFILENAME') { $FoundLogFile = $true }
+        if ($txt -match '--portable' -or $txt -match 'Portable Copy') { $FoundPortable = $true }
+    } catch {
+        # ignore read errors
+    }
+}
+
+Write-Log "Doc detection: --config-path=$FoundConfigPath, --log-file=$FoundLogFile, --portableMention=$FoundPortable"
+
+# Require authoritative support for config-path before launching NVDA to ensure profile isolation
+if (-not $FoundConfigPath) {
+    Write-Error 'NVDA documentation does not indicate support for --config-path/-c. Cannot guarantee profile isolation. Aborting.'
+    exit 3
+}
+
+# Record profile isolation method
+$PROFILE_ISOLATION_METHOD = '--config-path'
+Write-Log "PROFILE_ISOLATION_METHOD = $PROFILE_ISOLATION_METHOD"
 
 # Prepare disposable test workspace
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -156,13 +171,38 @@ Write-Output "Disposable profile will be: $ProfileDir"
 $ok = Read-Host "Press ENTER to launch NVDA now (or type C to cancel)"
 if ($ok -and $ok.ToUpper().StartsWith('C')) { Write-Log 'User cancelled before NVDA launch'; exit 0 }
 
-# Start NVDA and capture process
+# Start NVDA and capture process — ensure PROFILE_ISOLATION_METHOD used
 $nvdaLogPath = Join-Path $LogsDir 'nvda.log'
 $procAfterStartFile = Join-Path $LogsDir 'process-after-start.txt'
+# Build safe argument list using confirmed config-path method
+$nvdaArgs = @()
+$nvdaArgs += "$PROFILE_ISOLATION_METHOD=$ProfileDir"
+if ($FoundLogFile) { $nvdaArgs += "--log-file=$nvdaLogPath"; $nvdaArgs += '--log-level=20' }
+# Disable online addons for test isolation
+$nvdaArgs += '--disable-addons'
+
 $startInfo = @{ FilePath = $NvdaExe; ArgumentList = $nvdaArgs; WorkingDirectory = (Split-Path $NvdaExe); }
-Write-Log "Launching NVDA: $NvdaExe $($nvdaArgs -join ' ')"
+Write-Log "Launching NVDA with args: $($nvdaArgs -join ' ')"
 $nvdaProc = Start-Process @startInfo -PassThru
-Start-Sleep -Seconds 4
+Start-Sleep -Seconds 2
+
+# Verify that the launched process is using the disposable profile by inspecting its command line
+try {
+    $procInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $($nvdaProc.Id)" -ErrorAction Stop
+    $cmd = $procInfo.CommandLine
+    if ($cmd -and $cmd -match [regex]::Escape($ProfileDir)) {
+        Write-Log 'Confirmed NVDA process command line includes the disposable profile path.'
+        $PROFILE_ISOLATION_CONFIRMED = $true
+    } else {
+        Write-Error 'Launched NVDA does not contain the expected --config-path argument in its command line. Aborting and killing the NVDA instance to avoid touching the daily profile.'
+        try { Stop-Process -Id $nvdaProc.Id -Force -ErrorAction SilentlyContinue } catch {}
+        exit 4
+    }
+} catch {
+    Write-Error "Failed to inspect NVDA process command line: $_"; exit 5
+}
+
+Start-Sleep -Seconds 2
 Dump-Processes $procAfterStartFile
 NetstatTo (Join-Path $LogsDir 'netstat-during.txt')
 
