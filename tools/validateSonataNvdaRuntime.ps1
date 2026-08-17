@@ -33,7 +33,7 @@ Write-Log 'Validating .nvda-addon SHA256...'
 try {
     $actual = (Get-FileHash -Algorithm SHA256 $AddonPath).Hash.ToUpper()
 } catch {
-    Write-Error "Failed to compute hash for $AddonPath: $_"; exit 2
+    Write-Error ("Failed to compute hash for {0}: {1}" -f $AddonPath, $_); exit 2
 }
 if ($actual -ne $ExpectedSHA) {
     Write-Error "SHA256 mismatch for $AddonPath (expected $ExpectedSHA, got $actual). Aborting."; exit 2
@@ -105,7 +105,7 @@ try {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($AddonPath, $AddonInstallDir)
 } catch {
-    Write-Error "Failed to extract addon: $_"; exit 2
+    Write-Error ("Failed to extract addon: {0}" -f $_); exit 2
 }
 Write-Log "Addon extracted to $AddonInstallDir"
 
