@@ -78,3 +78,27 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             gui.mainFrame.sysTrayIcon.menu.DestroyItem(self.itemHandle)
         except:
             pass
+        # Ensure the GRPC backend is terminated when NVDA exits. Import the TTS module
+        # from the add-on's synthDrivers and call its grpc_client.terminate() to stop
+        # any running sonata-grpc process that this NVDA instance started.
+        try:
+            _TTS_MODULE_DIR = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)), "synthDrivers")
+            if _TTS_MODULE_DIR not in sys.path:
+                sys.path.insert(0, _TTS_MODULE_DIR)
+                added = True
+            else:
+                added = False
+            try:
+                from sonata_neural_voices import grpc_client
+                try:
+                    grpc_client.terminate()
+                except Exception:
+                    log.exception("Failed to terminate sonata grpc via global plugin", exc_info=True)
+            finally:
+                if added:
+                    try:
+                        sys.path.remove(_TTS_MODULE_DIR)
+                    except Exception:
+                        pass
+        except Exception:
+            log.exception("Failed in global plugin terminate cleanup", exc_info=True)
