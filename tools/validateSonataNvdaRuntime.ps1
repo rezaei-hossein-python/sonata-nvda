@@ -129,7 +129,7 @@ try {
     # Extract archive contents directly into addons\sonata_neural_voices\ so manifest.ini sits under that folder
     [System.IO.Compression.ZipFile]::ExtractToDirectory($AddonPath, $AddonRoot)
 } catch {
-    Write-Error ("Failed to extract addon into $AddonRoot: {0}" -f $_); exit 2
+    Write-Error ("Failed to extract addon into {0}: {1}" -f $AddonRoot, $_); exit 2
 }
 Write-Log "Addon extracted to $AddonRoot"
 
@@ -160,7 +160,7 @@ try {
         Write-Error 'Could not find name entry in manifest.ini'; exit 7
     }
 } catch {
-    Write-Error "Failed to parse manifest.ini: $_"; exit 7
+    Write-Error ("Failed to parse manifest.ini: {0}" -f $_); exit 7
 }
 Write-Log 'Addon prelaunch layout and manifest verified.'
 
@@ -255,7 +255,7 @@ try {
         exit 4
     }
 } catch {
-    Write-Error "Failed to inspect NVDA process command line: $_"; exit 5
+    Write-Error ("Failed to inspect NVDA process command line: {0}" -f $_); exit 5
 }
 
 Start-Sleep -Seconds 2
