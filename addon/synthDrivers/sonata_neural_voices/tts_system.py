@@ -108,6 +108,7 @@ class SonataVoice:
             data['phoneme_map'] = {}
             needs_update = True
         p_map = data.get('phoneme_id_map', {})
+        # Collect invalid keys from phoneme_id_map (multi-char entries)
         invalid_keys = [k for k in p_map.keys() if len(k) > 1]
         if p_map:
             promoted = {}
@@ -123,6 +124,24 @@ class SonataVoice:
                     data['phoneme_map'][k] = v
             if promoted != p_map:
                 needs_update = True
+        # Remove any multi-character keys from existing phoneme_map to satisfy downstream parser
+        existing_invalid = [k for k in list(data.get('phoneme_map', {}).keys()) if len(k) > 1]
+        if existing_invalid:
+            # Record them as invalid as well
+            invalid_keys.extend([k for k in existing_invalid if k not in invalid_keys])
+            for k in existing_invalid:
+                try:
+                    del data['phoneme_map'][k]
+                except KeyError:
+                    pass
+            needs_update = True
+        # Best-effort: drop phoneme_id_map entirely from normalized output to avoid duplicate/multi-char entries
+        if 'phoneme_id_map' in data:
+            try:
+                del data['phoneme_id_map']
+            except Exception:
+                pass
+            needs_update = True
         if needs_update:
             normalized_path = Path(original_path).with_suffix('.sonata.json')
             # preserve unicode; produce stable, idempotent output
