@@ -247,12 +247,10 @@ class SonataVoice:
                 err_path = normalized_path.with_suffix('.sonata.json.err')
                 with open(err_path, 'w', encoding='utf-8') as ef:
                     for r in sorted(set(removed)):
-                        ef.write(f"REMOVED:{r}
-")
+                        ef.write(f"REMOVED:{r}\n")
                     for i, kept, dropped in collisions:
-                        ef.write(f"COLLISION:{i}:kept:{kept}:dropped:{','.join(dropped)}
-")
-            return str(normalized_path)
+                        ef.write(f"COLLISION:{i}:kept:{kept}:dropped:{','.join(dropped)}\n")
+return str(normalized_path)
 
         return str(original_path)
     def load(self):
