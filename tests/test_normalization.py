@@ -67,8 +67,8 @@ def test_normalize_preserves_original_and_generates_sonata():
         data = {
             "name": "test",
             "phoneme_id_map": {
-                "a": "ah",
-                "aa": "long"
+                "a": "1",
+                "aa": "2"
             }
         }
         with open(original, 'w', encoding='utf-8') as f:
@@ -84,10 +84,17 @@ def test_normalize_preserves_original_and_generates_sonata():
         # sonata file should contain phoneme_map promoted from single-char keys
         with open(sonata_path, 'r', encoding='utf-8') as f:
             normalized = json.load(f)
+        # final normalized form should contain phoneme_id_map: char -> [ids]
+        assert 'phoneme_id_map' in normalized
+        assert 'a' in normalized['phoneme_id_map']
+        assert normalized['phoneme_id_map']['a'] == [1]
+        # phoneme_map should map numeric id (as string) -> char
         assert 'phoneme_map' in normalized
-        assert 'a' in normalized['phoneme_map']
+        assert '1' in normalized['phoneme_map'] and normalized['phoneme_map']['1'] == 'a'
         # invalid key 'aa' should not be present and an .err file should exist
         err_path = sonata_path.with_suffix('.sonata.json.err')
         assert err_path.exists()
+        with open(err_path, 'r', encoding='utf-8') as ef:
+            assert 'aa' in ef.read()
     finally:
         shutil.rmtree(td)

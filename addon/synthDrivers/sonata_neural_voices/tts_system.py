@@ -98,64 +98,163 @@ class SonataVoice:
 
 
     def _normalize_config(self, original_path):
+        """Normalize a voice JSON to a backend-compatible .sonata.json.
+
+        Rules enforced:
+        - Do not modify the original JSON file.
+        - Produce a .sonata.json with `phoneme_id_map` mapping single-character
+          phonemes -> list of numeric IDs (as JSON numbers), and `phoneme_map`
+          mapping numeric ID (JSON strings) -> single-character phoneme.
+        - Remove backend-incompatible multi-character phoneme entries and record
+          them in a companion `.sonata.json.err` file.
+        - Be deterministic, idempotent, and fail-safe (return original path if no
+          valid mapping can be constructed).
+        """
         import json
-        from datetime import datetime
+        import copy
+        from pathlib import Path
         with open(original_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        needs_update = False
-        # Ensure phoneme_map exists and preserve any phoneme_id_map by promoting valid single-char keys
-        if 'phoneme_map' not in data:
-            data['phoneme_map'] = {}
-            needs_update = True
-        p_map = data.get('phoneme_id_map', {})
-        # Collect invalid keys from phoneme_id_map (multi-char entries)
-        invalid_keys = [k for k in p_map.keys() if len(k) > 1]
-        if p_map:
-            promoted = {}
-            for k, v in p_map.items():
-                if len(k) == 1:
-                    promoted[k] = v
-                else:
-                    # leave invalid entries out but record their presence
-                    pass
-            # merge without overwriting existing phoneme_map entries
-            for k, v in promoted.items():
-                if k not in data['phoneme_map']:
-                    data['phoneme_map'][k] = v
-            if promoted != p_map:
-                needs_update = True
-        # Remove any multi-character keys from existing phoneme_map to satisfy downstream parser
-        existing_invalid = [k for k in list(data.get('phoneme_map', {}).keys()) if len(k) > 1]
-        if existing_invalid:
-            # Record them as invalid as well
-            invalid_keys.extend([k for k in existing_invalid if k not in invalid_keys])
-            for k in existing_invalid:
-                try:
-                    del data['phoneme_map'][k]
-                except KeyError:
-                    pass
-            needs_update = True
-        # Best-effort: drop phoneme_id_map entirely from normalized output to avoid duplicate/multi-char entries
-        if 'phoneme_id_map' in data:
+
+        # Collect candidate mappings from both phoneme_id_map and phoneme_map
+        char_to_ids = {}  # char -> set(int)
+        removed = []
+        collisions = []  # (id, kept_char, [dropped_chars])
+
+        # Helper to add a numeric id to a character set
+        def _add_char_id(ch, idx):
             try:
-                del data['phoneme_id_map']
+                i = int(idx)
             except Exception:
-                pass
+                return False
+            char_to_ids.setdefault(ch, set()).add(i)
+            return True
+
+        # Process phoneme_id_map: keys should be single-character phonemes
+        p_map = data.get('phoneme_id_map')
+        if isinstance(p_map, dict):
+            for k, v in p_map.items():
+                if not isinstance(k, str) or len(k) != 1:
+                    # record multi-character phonemes for the error file
+                    try:
+                        removed.append(str(k))
+                    except Exception:
+                        pass
+                    continue
+                # v may be a list or a single value
+                vals = v if isinstance(v, list) else [v]
+                for idx in vals:
+                    _add_char_id(k, idx)
+
+        # Process phoneme_map: id -> phoneme (value should be single-char)
+        ph_map = data.get('phoneme_map')
+        if isinstance(ph_map, dict):
+            for k, v in ph_map.items():
+                if not isinstance(v, str) or len(v) != 1:
+                    # record multi-character phoneme values
+                    if isinstance(v, str) and len(v) > 1:
+                        removed.append(v)
+                    continue
+                # key should be numeric (string or number)
+                try:
+                    _add_char_id(v, k)
+                except Exception:
+                    # ignore unparsable ids
+                    pass
+
+        # Resolve collisions: a numeric id assigned to multiple different chars
+        id_to_chars = {}
+        for ch, ids in char_to_ids.items():
+            for i in ids:
+                id_to_chars.setdefault(i, set()).add(ch)
+
+        id_to_char = {}
+        for i, chars in id_to_chars.items():
+            if not chars:
+                continue
+            if len(chars) == 1:
+                id_to_char[i] = next(iter(chars))
+            else:
+                # deterministic choice: pick the lexicographically smallest char
+                chosen = sorted(chars)[0]
+                dropped = sorted([c for c in chars if c != chosen])
+                id_to_char[i] = chosen
+                collisions.append((i, chosen, dropped))
+                # remove the id from the dropped chars' sets
+                for dc in dropped:
+                    char_to_ids[dc].discard(i)
+
+        # Build final structures: phoneme_id_map (char -> list[int]) and
+        # phoneme_map (str(id) -> char)
+        final_pid = {}
+        for ch, ids in sorted(char_to_ids.items(), key=lambda x: x[0]):
+            ids_list = sorted(i for i in ids)
+            if ids_list:
+                final_pid[ch] = ids_list
+
+        final_phmap = {str(i): ch for i, ch in sorted(id_to_char.items(), key=lambda x: x[0])}
+
+        # Determine whether an updated normalized file is necessary
+        def _normalize_orig_pid(pmap):
+            out = {}
+            if not isinstance(pmap, dict):
+                return out
+            for k, v in pmap.items():
+                if not isinstance(k, str) or len(k) != 1:
+                    continue
+                vals = v if isinstance(v, list) else [v]
+                ids = []
+                for idx in vals:
+                    try:
+                        ids.append(int(idx))
+                    except Exception:
+                        pass
+                if ids:
+                    out[k] = sorted(set(ids))
+            return out
+
+        orig_pid_norm = _normalize_orig_pid(data.get('phoneme_id_map', {}))
+        orig_phmap_norm = {}
+        if isinstance(data.get('phoneme_map'), dict):
+            for k, v in data.get('phoneme_map', {}).items():
+                try:
+                    orig_phmap_norm[str(int(k))] = v
+                except Exception:
+                    # skip unparsable numeric keys
+                    pass
+
+        needs_update = False
+        if orig_pid_norm != final_pid:
             needs_update = True
+        if orig_phmap_norm != final_phmap:
+            needs_update = True
+        if removed or collisions:
+            needs_update = True
+
+        # Fail-safe: if no valid mapping was constructed, do not create a normalized file
+        if needs_update and not final_pid and not final_phmap:
+            return str(original_path)
+
         if needs_update:
+            normalized = copy.deepcopy(data)
+            normalized['phoneme_id_map'] = final_pid
+            normalized['phoneme_map'] = final_phmap
             normalized_path = Path(original_path).with_suffix('.sonata.json')
-            # preserve unicode; produce stable, idempotent output
             with open(normalized_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, separators=(',', ':'), indent=2)
-            # If there were invalid phoneme_id_map keys, write an actionable note
-            if invalid_keys:
+                json.dump(normalized, f, ensure_ascii=False, separators=(',', ':'), indent=2)
+            # Write .err file listing removed multi-char phonemes and collisions
+            if removed or collisions:
                 err_path = normalized_path.with_suffix('.sonata.json.err')
                 with open(err_path, 'w', encoding='utf-8') as ef:
-                    ef.write(f"Invalid phoneme_id_map keys removed on {datetime.utcnow().isoformat()}Z:\n")
-                    ef.write('\n'.join(invalid_keys))
-            return normalized_path
-        return original_path
+                    for r in sorted(set(removed)):
+                        ef.write(f"REMOVED:{r}
+")
+                    for i, kept, dropped in collisions:
+                        ef.write(f"COLLISION:{i}:kept:{kept}:dropped:{','.join(dropped)}
+")
+            return str(normalized_path)
 
+        return str(original_path)
     def load(self):
         if self.remote_id:
             return

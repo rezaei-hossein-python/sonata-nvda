@@ -257,6 +257,28 @@ async def get_sonata_version():
 
 @aio.asyncio_coroutine_to_concurrent_future
 async def load_voice(config_path):
+    """Load a voice, ensuring the config is backend-compatible.
+    If the JSON uses single-char->id mappings (phoneme_id_map) or char->list (phoneme_map),
+    write a backend-friendly .sonata.json that includes both `phoneme_id_map` (char->list)
+    and `phoneme_map` (id->char with numeric-string keys) and pass that path to the server.
+    """
+    try:
+        # Delegate normalization to the permanent normalizer in tts_system.
+        from pathlib import Path
+        pth = Path(config_path)
+        if pth.exists():
+            try:
+                # Import locally to avoid top-level circular imports.
+                from ..tts_system import SonataVoice
+
+                normalized = SonataVoice._normalize_config(None, str(pth))
+                if normalized and normalized != str(pth):
+                    config_path = str(normalized)
+            except Exception:
+                # Fall back to passing the original config path if normalization fails
+                pass
+    except Exception:
+        pass
     req = msgs.VoicePath(config_path=config_path)
     return await SONATA_GRPC_SERVICE.LoadVoice(req)
 
