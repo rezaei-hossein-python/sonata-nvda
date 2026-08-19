@@ -19,7 +19,7 @@ $ErrorActionPreference = 'Stop'
 # Paths & constants
 $RepoRoot = 'C:\projects\sonata-nvda-64'
 $AddonPath = Join-Path $RepoRoot 'sonata_neural_voices-3.1.nvda-addon'
-$ExpectedSHA = 'D08CC64CC095AB317F35B9F8A61EDD5E5E063C71B4C08F8368590F3C9CD04357'
+$ExpectedSHA = 'D89CEAEDDB5AEC43B8F4AE7115AFCD1429B1CA602E32F429954A6FE76191F110'
 $NvdaDefaultPath = 'C:\Program Files\NVDA\nvda.exe'
 $ResultsBase = 'C:\temp\sonata-nvda-runtime-test'
 
