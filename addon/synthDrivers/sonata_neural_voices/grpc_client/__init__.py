@@ -163,13 +163,13 @@ def terminate():
                 CHANNEL = None
                 SONATA_GRPC_SERVICE = None
     except Exception:
-        log.exception("Failed while closing GRPC channel", exc_info=True)
+        log.exception(\"Failed while closing GRPC channel\", exc_info=True)
 
     # Stop the aio event loop and thread pool
     try:
         aio.terminate()
     except Exception:
-        log.exception("Failed to terminate aio event loop", exc_info=True)
+        log.exception(\"Failed to terminate aio event loop\", exc_info=True)
 
     # Prefer terminating the subprocess handle we own
     if GRPC_SERVER_PROCESS is not None:
@@ -355,4 +355,3 @@ async def bench(n=10000):
     for i in range(n):
         await get_sonata_version()
     return time.perf_counter() - t0
-
