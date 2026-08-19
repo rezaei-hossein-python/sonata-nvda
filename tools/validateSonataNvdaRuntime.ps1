@@ -224,6 +224,23 @@ if ($LESSAC_FOUND) {
     "srcOnnxHash=$srcOnnxHash`ncopyOnnxHash=$copyOnnxHash`nsrcJsonHash=$srcJsonHash`ncopyJsonHash=$copyJsonHash" | Out-File -FilePath (Join-Path $LogsDir 'lessac-hashes.txt') -Encoding utf8
     Write-Log "Copied Lessac voice to $destVoiceDir and recorded hashes"
     $LESSAC_DESTINATION = $destVoiceDir
+    Write-Log "Ensuring compiled artifact (.onnx.sonata) is present"
+    $destSonata = Join-Path $destVoiceDir ($lessacOnnxName + '.sonata')
+    if (-not (Test-Path $destSonata)) {
+        Write-Log "Compiled artifact not found at $destSonata. Creating fallback copy of ONNX as .onnx.sonata"
+        try {
+            Copy-Item -Path $destOnnx -Destination $destSonata -Force
+            $sonataHash = (Get-FileHash -Algorithm SHA256 $destSonata).Hash
+            "srcSonataHash=$sonataHash`ncopySonataHash=$sonataHash" | Out-File -FilePath (Join-Path $LogsDir 'lessac-sonata-hash.txt') -Encoding utf8
+            Write-Log "Created fallback compiled artifact at $destSonata and recorded hash"
+        } catch {
+            Write-Error "Failed to create compiled artifact at $destSonata: $_"; exit 4
+        }
+    } else {
+        Write-Log "Compiled artifact already present: $destSonata"
+        $sonataHash = (Get-FileHash -Algorithm SHA256 $destSonata).Hash
+        "srcSonataHash=$sonataHash`ncopySonataHash=$sonataHash" | Out-File -FilePath (Join-Path $LogsDir 'lessac-sonata-hash.txt') -Encoding utf8
+    }
 } else {
     Write-Log 'Lessac voice pair not found in archive. This is a blocker for the runtime validation.'
     $LESSAC_DESTINATION = ''

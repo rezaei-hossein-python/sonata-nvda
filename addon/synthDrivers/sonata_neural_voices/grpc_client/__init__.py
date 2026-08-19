@@ -143,13 +143,33 @@ def terminate():
     global CHANNEL, GRPC_SERVER_PROCESS, SONATA_GRPC_SERVER_PORT
     pidfile = os.path.join(SONATA_VOICES_BASE_DIR, "sonata_grpc.pid")
     SONATA_GRPC_SERVER_PORT = None
-    aio.terminate()
-    if CHANNEL is not None:
-        try:
-            CHANNEL.close()
-        except Exception:
-            pass
-        CHANNEL = None
+    # Attempt to close gRPC channel cleanly before stopping asyncio loop
+    try:
+        if CHANNEL is not None:
+            try:
+                import asyncio as _asyncio
+                # Prefer closing the channel on the aio event loop and wait briefly
+                try:
+                    fut = _asyncio.run_coroutine_threadsafe(CHANNEL.close(), aio.ASYNCIO_EVENT_LOOP)
+                    fut.result(timeout=3)
+                except Exception:
+                    try:
+                        aio.asyncio_create_task(CHANNEL.close())
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            finally:
+                CHANNEL = None
+                SONATA_GRPC_SERVICE = None
+    except Exception:
+        log.exception(\"Failed while closing GRPC channel\", exc_info=True)
+
+    # Stop the aio event loop and thread pool
+    try:
+        aio.terminate()
+    except Exception:
+        log.exception(\"Failed to terminate aio event loop\", exc_info=True)
 
     # Prefer terminating the subprocess handle we own
     if GRPC_SERVER_PROCESS is not None:
