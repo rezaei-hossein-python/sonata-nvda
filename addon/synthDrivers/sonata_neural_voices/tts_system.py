@@ -250,7 +250,7 @@ class SonataVoice:
                         ef.write(f"REMOVED:{r}\n")
                     for i, kept, dropped in collisions:
                         ef.write(f"COLLISION:{i}:kept:{kept}:dropped:{','.join(dropped)}\n")
-return str(normalized_path)
+            return str(normalized_path)
 
         return str(original_path)
     def load(self):
