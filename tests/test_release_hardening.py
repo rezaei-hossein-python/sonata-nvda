@@ -60,6 +60,32 @@ def test_maintainer_and_patch_version_metadata():
     assert build_vars["addon_publisher"] == (
         "Hosein Rezaii <rezaii.hosein@gmail.com>"
     )
+    assert build_vars["addon_updateChannel"] == "stable"
+    assert build_vars["addon_license"] == "GPL v2"
+    assert build_vars["addon_licenseURL"].startswith("https://")
+    assert build_vars["addon_releaseURL"] == (
+        "https://github.com/rezaei-hossein-python/sonata-nvda/releases/"
+        "download/v3.1.1/sonata_neural_voices-3.1.1.nvda-addon"
+    )
+
+
+def test_generated_store_metadata_fields():
+    metadata = json.loads((root / "3.1.1.json").read_text(encoding="utf-8"))
+    required = {
+        "addonId", "addonVersionNumber", "addonVersionName", "displayName",
+        "publisher", "description", "minNVDAVersion", "lastTestedVersion",
+        "channel", "URL", "sha256", "sourceURL", "license", "translations",
+    }
+    assert required <= metadata.keys()
+    assert metadata["addonId"] == "sonata_neural_voices"
+    assert metadata["displayName"] == "Sonata Neural Voices"
+    assert metadata["addonVersionName"] == "3.1.1"
+    assert metadata["channel"] == "stable"
+    assert metadata["URL"].startswith("https://")
+    assert metadata["URL"].endswith(".nvda-addon")
+    assert metadata["sourceURL"].startswith("https://")
+    assert metadata["licenseURL"].startswith("https://")
+    assert metadata["translations"] == []
 
 
 def test_starter_manifest_and_payload_hashes():
@@ -169,6 +195,7 @@ def test_preview_url_and_failure_handling():
 
 test_hidden_backend_launch_and_owned_lifecycle()
 test_maintainer_and_patch_version_metadata()
+test_generated_store_metadata_fields()
 test_starter_manifest_and_payload_hashes()
 test_starter_install_is_idempotent_and_non_destructive()
 test_preview_url_and_failure_handling()

@@ -224,7 +224,7 @@ def createAddonStoreJson(bundle):
 	addonStoreEntry = {
 		"addonId": buildVars.addon_info["addon_name"],
 		"displayName": buildVars.addon_info["addon_summary"],
-		"URL": "",
+		"URL": buildVars.addon_info["addon_releaseURL"],
 		"description": buildVars.addon_info["addon_description"],
 		"sha256": hashValue,
 		"homepage": buildVars.addon_info["addon_url"],
@@ -249,6 +249,8 @@ def createAddonStoreJson(bundle):
 		"sourceURL": buildVars.addon_info["addon_sourceURL"],
 		"license": buildVars.addon_info["addon_license"],
 		"licenseURL": buildVars.addon_info["addon_licenseURL"],
+		"changelog": buildVars.addon_info["addon_changelog"],
+		"translations": [],
 	}
 	with open(jsonFilename, "w") as addonStoreJson:
 		json.dump(addonStoreEntry, addonStoreJson, indent="\t")

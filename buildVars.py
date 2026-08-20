@@ -23,7 +23,7 @@ addon_info = {
 	"addon_summary": _("Sonata Neural Voices"),
 	# Add-on description
 	# Translators: Long description to be shown for this add-on on add-on information from add-ons manager
-	"addon_description": _("""Neural voices for NVDA based on Sonata"""),
+	"addon_description": _("""Fast, local neural Piper voices for NVDA through the Sonata engine, with bundled offline starter voices and a voice manager for additional languages."""),
 	# version
 	"addon_version": "3.1.1",
 	# Author(s)
@@ -42,11 +42,18 @@ addon_info = {
 	# Add-on update channel (default is None, denoting stable releases,
 	# and for development releases, use "dev".)
 	# Do not change unless you know what you are doing!
-	"addon_updateChannel": "beta",
+	"addon_updateChannel": "stable",
 	# Add-on license such as GPL 2
-	"addon_license": "GPL 2",
+	"addon_license": "GPL v2",
 	# URL for the license document the ad-on is licensed under
-	"addon_licenseURL": None,
+	"addon_licenseURL": "https://www.gnu.org/licenses/gpl-2.0.html",
+	# Permanent release asset URL used by generated Add-on Store metadata.
+	"addon_releaseURL": "https://github.com/rezaei-hossein-python/sonata-nvda/releases/download/v3.1.1/sonata_neural_voices-3.1.1.nvda-addon",
+	"addon_changelog": (
+		"Adds NVDA 2026.1.1 AMD64 and CPython 3.13 compatibility, an invisible "
+		"managed backend, four offline starter voices, repaired online previews, "
+		"and updated fork maintainer information."
+	),
 }
 
 pythonSources = [

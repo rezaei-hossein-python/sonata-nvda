@@ -47,9 +47,10 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self.report["normal_speech"] = True
             from globalPlugins.sonata_tts_global_plugin import voice_manager
             from synthDrivers.sonata_neural_voices import aio, grpc_client
-            self.report["voice_manager_available"] = hasattr(
-                voice_manager, "SonataVoiceManagerDialog"
-            )
+            self.voice_manager_dialog = voice_manager.SonataVoiceManagerDialog()
+            self.voice_manager_dialog.Show()
+            self.report["voice_manager_available"] = True
+            self.report["voice_manager_opens"] = self.voice_manager_dialog.IsShown()
             self.process = grpc_client.GRPC_SERVER_PROCESS
             future = aio.THREADED_EXECUTOR.submit(
                 voice_manager.play_remote_mp3, PREVIEW_URL
@@ -71,6 +72,8 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
 
     def _restore(self):
         try:
+            if hasattr(self, "voice_manager_dialog"):
+                self.voice_manager_dialog.Destroy()
             self.report["restored_espeak"] = bool(
                 synthDriverHandler.setSynth("espeak")
             )

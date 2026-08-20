@@ -1,9 +1,9 @@
 {
 	"addonId": "sonata_neural_voices",
 	"displayName": "Sonata Neural Voices",
-	"URL": "",
-	"description": "Neural voices for NVDA based on Sonata",
-	"sha256": "f4e84a36019540742951ad5f1240a394570789738c23c257114ff53c866a63aa",
+	"URL": "https://github.com/rezaei-hossein-python/sonata-nvda/releases/download/v3.1.1/sonata_neural_voices-3.1.1.nvda-addon",
+	"description": "Fast, local neural Piper voices for NVDA through the Sonata engine, with bundled offline starter voices and a voice manager for additional languages.",
+	"sha256": "14c7b780cf2543d6b9bae6342e0524a15d4ca464f20d94167ae68819eed8d3a6",
 	"homepage": "https://github.com/rezaei-hossein-python/sonata-nvda",
 	"addonVersionName": "3.1.1",
 	"addonVersionNumber": {
@@ -21,9 +21,11 @@
 		"minor": 1,
 		"patch": 1
 	},
-	"channel": "beta",
+	"channel": "stable",
 	"publisher": "Hosein Rezaii <rezaii.hosein@gmail.com>",
 	"sourceURL": "https://github.com/rezaei-hossein-python/sonata-nvda",
-	"license": "GPL 2",
-	"licenseURL": null
+	"license": "GPL v2",
+	"licenseURL": "https://www.gnu.org/licenses/gpl-2.0.html",
+	"changelog": "Adds NVDA 2026.1.1 AMD64 and CPython 3.13 compatibility, an invisible managed backend, four offline starter voices, repaired online previews, and updated fork maintainer information.",
+	"translations": []
 }
