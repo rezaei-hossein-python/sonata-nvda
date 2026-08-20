@@ -63,6 +63,8 @@ excludedFiles = [
 	"**/__pycache__/**",
 	"**/*.pyc",
 	"**/*.pyo",
+	"**/*.bak",
+	"**/*.bak2",
 ]
 
 # Base language for the NVDA add-on

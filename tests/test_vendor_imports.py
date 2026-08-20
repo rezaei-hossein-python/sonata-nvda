@@ -1,7 +1,8 @@
 import sys
 from pathlib import Path
 
-lib_path = Path(__file__).resolve().parents[1] / 'addon' / 'synthDrivers' / 'sonata_neural_voices' / 'lib'
+driver_path = Path(__file__).resolve().parents[1] / 'addon' / 'synthDrivers' / 'sonata_neural_voices'
+lib_path = driver_path / 'lib'
 assert lib_path.exists(), f"Vendored lib path missing: {lib_path}"
 # Add vendored lib to sys.path for import tests
 sys.path.insert(0, str(lib_path))
@@ -21,8 +22,8 @@ def test_native_architectures():
     patterns = ['**/*.pyd', '**/*.dll', '**/*.exe']
     found = []
     for p in patterns:
-        found.extend(glob.glob(str(lib_path / p), recursive=True))
-    assert found, 'No native binaries found in vendored lib'
+        found.extend(glob.glob(str(driver_path / p), recursive=True))
+    assert found, 'No native binaries found in synth driver'
     def arch_of(path):
         with open(path, 'rb') as fh:
             mz = fh.read(64)
@@ -37,3 +38,7 @@ def test_native_architectures():
     for f in found:
         machine = arch_of(f)
         assert machine in (0x8664,), f"Found non-x64 binary: {f} (machine=0x{machine:x})"
+
+
+test_imports()
+test_native_architectures()

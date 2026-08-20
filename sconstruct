@@ -4,6 +4,7 @@
 # See the file COPYING.txt for more details.
 
 import codecs
+import fnmatch
 import gettext
 import os
 import os.path
@@ -167,8 +168,12 @@ def createAddonBundleFromPath(path, dest):
 			relativePath = os.path.relpath(dir, basedir)
 			for filename in filenames:
 				pathInBundle = os.path.join(relativePath, filename)
+				portablePathInBundle = pathInBundle.replace(os.sep, "/")
 				absPath = os.path.join(dir, filename)
-				if pathInBundle not in buildVars.excludedFiles:
+				if not any(
+					fnmatch.fnmatch(portablePathInBundle, pattern.replace(os.sep, "/"))
+					for pattern in buildVars.excludedFiles
+				):
 					z.write(absPath, pathInBundle)
 	createAddonStoreJson(dest)
 	return dest

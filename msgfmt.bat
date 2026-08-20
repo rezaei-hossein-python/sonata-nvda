@@ -1,2 +1,2 @@
 @echo off
-python C:\projects\sonata-nvda-64\msgfmt_wrapper.py %*
+python "%~dp0msgfmt_wrapper.py" %*
