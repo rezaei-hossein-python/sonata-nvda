@@ -234,6 +234,16 @@ class SynthDriver(synthDriverHandler.SynthDriver):
         self.__voice = None
 
     def terminate(self):
+        if getattr(self, "_sonata_terminated", False):
+            return
+        self._sonata_terminated = True
+        # NVDA 2026's Driver.terminate saves settings while the driver is live
+        # and unregisters its pre_configSave callback. This must happen before
+        # the gRPC event loop is stopped.
+        if getattr(self, "tts", None) is not None:
+            super().terminate()
+        else:
+            self._unregisterConfigSaveAction()
         self.cancel()
         tts = getattr(self, "tts", None)
         if tts is not None:

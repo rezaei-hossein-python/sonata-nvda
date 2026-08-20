@@ -1,0 +1,29 @@
+{
+	"addonId": "sonata_neural_voices",
+	"displayName": "Sonata Neural Voices",
+	"URL": "",
+	"description": "Neural voices for NVDA based on Sonata",
+	"sha256": "f4e84a36019540742951ad5f1240a394570789738c23c257114ff53c866a63aa",
+	"homepage": "https://github.com/rezaei-hossein-python/sonata-nvda",
+	"addonVersionName": "3.1.1",
+	"addonVersionNumber": {
+		"major": 3,
+		"minor": 1,
+		"patch": 1
+	},
+	"minNVDAVersion": {
+		"major": 2026,
+		"minor": 1,
+		"patch": 0
+	},
+	"lastTestedVersion": {
+		"major": 2026,
+		"minor": 1,
+		"patch": 1
+	},
+	"channel": "beta",
+	"publisher": "Hosein Rezaii <rezaii.hosein@gmail.com>",
+	"sourceURL": "https://github.com/rezaei-hossein-python/sonata-nvda",
+	"license": "GPL 2",
+	"licenseURL": null
+}

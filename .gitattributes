@@ -6,3 +6,8 @@
 # Every person expected to commit po files should change their personal config file as described here:
 # https://mail.gnome.org/archives/kupfer-list/2010-June/msg00002.html
 *.po filter=cleanpo
+
+# Piper model payload hashes must remain identical across platforms.
+addon/starterVoices/*/MODEL_CARD -text
+addon/starterVoices/*/*.json -text
+addon/starterVoices/*/*.onnx -text

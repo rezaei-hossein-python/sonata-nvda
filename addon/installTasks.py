@@ -10,7 +10,10 @@ import shutil
 import sys
 import tempfile
 
+import globalVars
 from logHandler import log
+
+from starter_voices import STARTER_PACK_DIRECTORY, install_starter_voices
 
 
 _DIR = os.path.abspath(os.path.dirname(__file__))
@@ -23,6 +26,13 @@ del _DIR, _PIPER_SYNTH_DIR
 def onUninstall():
     with _temporary_import_psutil() as psutil:
         force_kill_sonata_grpc_server(psutil)
+
+
+def onInstall():
+    voices_dir = os.path.join(
+        globalVars.appArgs.configPath, "sonata", "voices", "piper"
+    )
+    install_starter_voices(STARTER_PACK_DIRECTORY, voices_dir, logger=log)
 
 
 def force_kill_sonata_grpc_server(psutil):

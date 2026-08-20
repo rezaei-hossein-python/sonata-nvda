@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "pack_version": "1.0.0",
+  "catalog_url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/voices.json",
+  "voices": [
+    {
+      "key": "en_US-ljspeech-medium",
+      "language": "English (United States)",
+      "license": "Public domain",
+      "trained_from_scratch": true,
+      "files": [
+        {
+          "name": "en_US-ljspeech-medium.onnx",
+          "size": 63531379,
+          "sha256": "6f52a751e2349abe7a76735eb09dc1875298c77ea2342ffd2fef79ff81b87f22"
+        },
+        {
+          "name": "en_US-ljspeech-medium.onnx.json",
+          "size": 4972,
+          "sha256": "141d612cc0a95ed7efc1ca936b845c2364967f2e9217c5dbfcf69fc4d6c65860"
+        },
+        {
+          "name": "MODEL_CARD",
+          "size": 517,
+          "sha256": "fbee1529c89d36b3fe76d7e9f3f832dce17f44900a52d76a9bda735654766b4d"
+        }
+      ]
+    },
+    {
+      "key": "fr_FR-mls-medium",
+      "language": "French (France)",
+      "license": "CC BY 4.0",
+      "trained_from_scratch": true,
+      "files": [
+        {
+          "name": "fr_FR-mls-medium.onnx",
+          "size": 76733750,
+          "sha256": "0ed223f78466917f2bae05ee90096ce69ab1fdeb251f55590d0e7422d234e162"
+        },
+        {
+          "name": "fr_FR-mls-medium.onnx.json",
+          "size": 7036,
+          "sha256": "252b0b0a6e4cc4949e23eccb956f9c779986c32f934f2f7e2191e5fdc2edca61"
+        },
+        {
+          "name": "MODEL_CARD",
+          "size": 222,
+          "sha256": "443ca90f1ed8e57d9fb802da6dc19c302d5d9b51ddbfbf27a17f3fb5c37ad154"
+        }
+      ]
+    },
+    {
+      "key": "de_DE-mls-medium",
+      "language": "German (Germany)",
+      "license": "CC BY 4.0",
+      "trained_from_scratch": true,
+      "files": [
+        {
+          "name": "de_DE-mls-medium.onnx",
+          "size": 76961079,
+          "sha256": "69cd1d2aa5a35839a518966fcc4924b5f93e5f8c948ed0752b1a616ad53f65bf"
+        },
+        {
+          "name": "de_DE-mls-medium.onnx.json",
+          "size": 8948,
+          "sha256": "b0af1c89ddfdc72d32e015729b0e89b99eec13c2c8caa1db7488d98e9e570b40"
+        },
+        {
+          "name": "MODEL_CARD",
+          "size": 223,
+          "sha256": "ca1bf03a3c287fb6968acfa010e1917f85f0aa59db0f371efc3a2857f4035ffd"
+        }
+      ]
+    },
+    {
+      "key": "es_ES-carlfm-x_low",
+      "language": "Spanish (Spain)",
+      "license": "Public domain",
+      "trained_from_scratch": true,
+      "files": [
+        {
+          "name": "es_ES-carlfm-x_low.onnx",
+          "size": 28130791,
+          "sha256": "d69677323a907cd4963f42b29c20a98b5d6bfa7f3e64df339915e4650c00d125"
+        },
+        {
+          "name": "es_ES-carlfm-x_low.onnx.json",
+          "size": 4159,
+          "sha256": "d9bdfa9ff01eb2bc9e62e7d2593939d1e4c4d8eb7cf75f972731539d12399966"
+        },
+        {
+          "name": "MODEL_CARD",
+          "size": 250,
+          "sha256": "a6e62a3d36c37c7702d877f784001208b952e2bf4d17c72a6b5da442fbefb4b3"
+        }
+      ]
+    }
+  ]
+}

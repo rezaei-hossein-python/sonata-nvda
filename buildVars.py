@@ -25,13 +25,14 @@ addon_info = {
 	# Translators: Long description to be shown for this add-on on add-on information from add-ons manager
 	"addon_description": _("""Neural voices for NVDA based on Sonata"""),
 	# version
-	"addon_version": "3.1",
+	"addon_version": "3.1.1",
 	# Author(s)
-	"addon_author": "Musharraf Omer <ibnomer2011@hotmail.com>",
+	"addon_author": "Musharraf Omer (upstream); Hosein Rezaii <rezaii.hosein@gmail.com> (maintainer)",
+	"addon_publisher": "Hosein Rezaii <rezaii.hosein@gmail.com>",
 	# URL for the add-on documentation support
-	"addon_url": None,
+	"addon_url": "https://github.com/rezaei-hossein-python/sonata-nvda",
 	# URL for the add-on repository where the source code can be found
-	"addon_sourceURL": "https://github.com/mush42/sonata-nvda",
+	"addon_sourceURL": "https://github.com/rezaei-hossein-python/sonata-nvda",
 	# Documentation file name
 	"addon_docFileName": "readme.html",
 	# Minimum NVDA version supported (e.g. "2018.3.0", minor version is optional)

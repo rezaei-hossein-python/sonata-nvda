@@ -12,6 +12,7 @@ from logHandler import log
 
 from ..const import SONATA_VOICES_BASE_DIR
 from ..helpers import BIN_DIRECTORY, find_free_port, import_bundled_library
+from .windows_process import KillOnCloseJob
 
 
 with import_bundled_library():
@@ -23,59 +24,21 @@ with import_bundled_library():
 
 SONATA_GRPC_SERVER_PORT = None
 GRPC_SERVER_PROCESS = None
+GRPC_SERVER_JOB = None
 CHANNEL = None
 SONATA_GRPC_SERVICE = None
+WINDOWS_GRPC_CREATION_FLAGS = (
+    subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
+)
 
 
 def start_grpc_server():
-    """Start or reuse a single persistent sonata-grpc server for this user profile.
-
-    Uses a small PID/port file under SONATA_VOICES_BASE_DIR to avoid launching
-    duplicate servers from multiple NVDA processes (NVDA spawns helper processes
-    which previously could each start their own server). If an existing server
-    is reachable on the recorded port, reuse it instead of starting a new one.
-    """
-    global GRPC_SERVER_PROCESS, SONATA_GRPC_SERVER_PORT
-    # If another module already initialized via globalVars, reuse it
+    """Start the profile's Sonata backend without creating a console window."""
+    global GRPC_SERVER_JOB, GRPC_SERVER_PROCESS, SONATA_GRPC_SERVER_PORT
     if hasattr(globalVars, "SONATA_GRPC_SERVER_PORT"):
         SONATA_GRPC_SERVER_PORT = globalVars.SONATA_GRPC_SERVER_PORT
         GRPC_SERVER_PROCESS = globalVars.GRPC_SERVER_PROCESS
         return True
-
-    pidfile = os.path.join(SONATA_VOICES_BASE_DIR, "sonata_grpc.pid")
-
-    # Try to detect an existing server from pidfile and test connectivity
-    try:
-        if os.path.exists(pidfile):
-            with open(pidfile, "r", encoding="utf-8") as f:
-                data = f.read().strip().split("\n")
-            if len(data) >= 2:
-                try:
-                    existing_port = int(data[0])
-                    existing_pid = int(data[1])
-                    # quick connectivity check
-                    import socket
-
-                    try:
-                        s = socket.create_connection(("127.0.0.1", existing_port), timeout=0.5)
-                        s.close()
-                        SONATA_GRPC_SERVER_PORT = existing_port
-                        # We don't claim ownership of the process handle (it may belong to another NVDA process),
-                        # but reusing the existing server avoids duplicates.
-                        GRPC_SERVER_PROCESS = None
-                        globalVars.SONATA_GRPC_SERVER_PORT = SONATA_GRPC_SERVER_PORT
-                        globalVars.GRPC_SERVER_PROCESS = GRPC_SERVER_PROCESS
-                        log.info(
-                            f"Reusing existing Sonata GRPC server at port {existing_port} (pid {existing_pid})"
-                        )
-                        return True
-                    except Exception:
-                        # Not reachable, proceed to start a fresh server
-                        pass
-                except Exception:
-                    pass
-    except Exception:
-        log.exception("Failed to probe existing sonata_grpc.pid file", exc_info=True)
 
     SONATA_GRPC_SERVER_PORT = find_free_port()
     grpc_server_exe = os.path.join(BIN_DIRECTORY, "sonata-grpc.exe")
@@ -86,8 +49,9 @@ def start_grpc_server():
         "SONATA_ESPEAKNG_DATA_DIRECTORY": os.fspath(nvda_espeak_dir),
         "SONATA_GRPC": "info",
     })
-    # Do not detach the process so we can reliably terminate it from this process
-    creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+    # CREATE_NO_WINDOW is intentionally used instead of DETACHED_PROCESS.
+    # Windows ignores CREATE_NO_WINDOW when DETACHED_PROCESS is also supplied,
+    # while the Popen handle remains sufficient for deterministic termination.
     try:
         server_log_file = os.path.join(SONATA_VOICES_BASE_DIR, "logs", "sonata-grpc.log")
         Path(server_log_file).parent.mkdir(parents=True, exist_ok=True)
@@ -100,24 +64,26 @@ def start_grpc_server():
             args=grpc_server_exe,
             cwd=os.fspath(BIN_DIRECTORY),
             env=env,
-            creationflags=creationflags,
+            creationflags=WINDOWS_GRPC_CREATION_FLAGS,
             stdout=server_stdout,
             stderr=subprocess.STDOUT,
+            close_fds=True,
         )
+        GRPC_SERVER_JOB = KillOnCloseJob()
+        GRPC_SERVER_JOB.assign(GRPC_SERVER_PROCESS)
     except Exception:
         log.exception(
             "Failed to start Sonata GRPC server. The synth will not be available.",
             exc_info=True,
         )
+        if GRPC_SERVER_PROCESS is not None:
+            GRPC_SERVER_PROCESS.terminate()
+            GRPC_SERVER_PROCESS.wait(timeout=5)
+            GRPC_SERVER_PROCESS = None
+        if GRPC_SERVER_JOB is not None:
+            GRPC_SERVER_JOB.close()
+            GRPC_SERVER_JOB = None
         return False
-
-    # Write pidfile so other NVDA processes can detect/reuse this server
-    try:
-        Path(SONATA_VOICES_BASE_DIR).mkdir(parents=True, exist_ok=True)
-        with open(pidfile, "w", encoding="utf-8") as f:
-            f.write(f"{SONATA_GRPC_SERVER_PORT}\n{GRPC_SERVER_PROCESS.pid}\n")
-    except Exception:
-        log.exception("Failed to write sonata_grpc.pid file", exc_info=True)
 
     globalVars.SONATA_GRPC_SERVER_PORT = SONATA_GRPC_SERVER_PORT
     globalVars.GRPC_SERVER_PROCESS = GRPC_SERVER_PROCESS
@@ -139,13 +105,14 @@ async def initialize():
 
 @atexit.register
 def terminate():
-    global CHANNEL, GRPC_SERVER_PROCESS, SONATA_GRPC_SERVER_PORT, SONATA_GRPC_SERVICE
-    pidfile = os.path.join(SONATA_VOICES_BASE_DIR, "sonata_grpc.pid")
+    global CHANNEL, GRPC_SERVER_JOB, GRPC_SERVER_PROCESS, SONATA_GRPC_SERVER_PORT, SONATA_GRPC_SERVICE
     channel = CHANNEL
     process = GRPC_SERVER_PROCESS
+    job = GRPC_SERVER_JOB
     CHANNEL = None
     SONATA_GRPC_SERVICE = None
     GRPC_SERVER_PROCESS = None
+    GRPC_SERVER_JOB = None
     SONATA_GRPC_SERVER_PORT = None
 
     if channel is not None and aio.ASYNCIO_EVENT_LOOP is not None:
@@ -167,16 +134,12 @@ def terminate():
         except Exception:
             log.exception("Failed to terminate Sonata GRPC process", exc_info=True)
 
+    if job is not None:
+        job.close()
+
     for attribute in ("SONATA_GRPC_SERVER_PORT", "GRPC_SERVER_PROCESS"):
         if hasattr(globalVars, attribute):
             delattr(globalVars, attribute)
-    try:
-        os.remove(pidfile)
-    except FileNotFoundError:
-        pass
-    except OSError:
-        log.debugWarning("Failed to remove Sonata GRPC pidfile", exc_info=True)
-
     aio.terminate()
 
 

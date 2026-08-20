@@ -245,7 +245,7 @@ def createAddonStoreJson(bundle):
 			"patch": int(lastTestedPatch)
 		},
 		"channel": channel,
-		"publisher": "",
+		"publisher": buildVars.addon_info["addon_publisher"],
 		"sourceURL": buildVars.addon_info["addon_sourceURL"],
 		"license": buildVars.addon_info["addon_license"],
 		"licenseURL": buildVars.addon_info["addon_licenseURL"],

@@ -174,6 +174,10 @@ def main():
     )
     parser.add_argument("--rt-voice")
     parser.add_argument("--rt-only", action="store_true")
+    parser.add_argument(
+        "--installed-only", action="store_true",
+        help="Skip network access and synthesize voices already in the work directory",
+    )
     args = parser.parse_args()
     work_dir = args.work_dir.resolve()
     downloads = work_dir / "downloads"
@@ -184,22 +188,32 @@ def main():
     if not (args.espeak_dir / "espeak-ng-data").is_dir():
         raise SystemExit(f"missing eSpeak data below {args.espeak_dir}")
 
-    voice_download = _load_voice_download(voices_dir)
-    catalog = voice_download.get_available_voices(force_online=not args.rt_only)
-    catalog_by_key = {voice.key: voice for voice in catalog}
-    selected = []
-    for key in args.voices:
-        voice = catalog_by_key.get(key)
-        if voice is None:
-            raise RuntimeError(f"voice missing from catalog: {key}")
-        selected.append(voice)
-
-    report = {
-        "catalog_count": len(catalog),
-        "catalog_load": True,
-        "voices": {},
-    }
-    if args.rt_voice:
+    if args.installed_only:
+        selected = [types.SimpleNamespace(key=key) for key in args.voices]
+        for voice in selected:
+            if not (voices_dir / voice.key).is_dir():
+                raise RuntimeError(f"installed voice missing: {voice.key}")
+        report = {
+            "catalog_count": None,
+            "catalog_load": "skipped-offline",
+            "voices": {voice.key: {"installed": True} for voice in selected},
+        }
+    else:
+        voice_download = _load_voice_download(voices_dir)
+        catalog = voice_download.get_available_voices(force_online=not args.rt_only)
+        catalog_by_key = {voice.key: voice for voice in catalog}
+        selected = []
+        for key in args.voices:
+            voice = catalog_by_key.get(key)
+            if voice is None:
+                raise RuntimeError(f"voice missing from catalog: {key}")
+            selected.append(voice)
+        report = {
+            "catalog_count": len(catalog),
+            "catalog_load": True,
+            "voices": {},
+        }
+    if args.rt_voice and not args.installed_only:
         rt_voice = catalog_by_key.get(args.rt_voice)
         if rt_voice is None or not rt_voice.has_rt_variant:
             raise RuntimeError(f"RT variant unavailable for {args.rt_voice}")
@@ -220,13 +234,14 @@ def main():
             report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
             print(json.dumps(report, indent=2))
             return
-    for voice in selected:
-        report["voices"][voice.key] = {
-            "files": _download_and_install(
-                voice_download, voice, downloads, voices_dir
-            ),
-            "installed": True,
-        }
+    if not args.installed_only:
+        for voice in selected:
+            report["voices"][voice.key] = {
+                "files": _download_and_install(
+                    voice_download, voice, downloads, voices_dir
+                ),
+                "installed": True,
+            }
 
     sys.path.insert(0, str(LIB_DIR))
     sys.path.insert(0, str(DRIVER_DIR / "grpc_client"))
@@ -247,7 +262,9 @@ def main():
             env=environment,
             stdout=log_file,
             stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            creationflags=(
+                subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
+            ),
         )
         channel = None
         try:
@@ -255,12 +272,17 @@ def main():
                 sonata_grpcStub, messages, port, process
             )
             report["backend_version"] = version
-            order = [selected[0], selected[1], selected[0]]
+            order = selected + selected[:1]
+            sample_text = {
+                "en": "Hello from Sonata.",
+                "fr": "Bonjour depuis Sonata.",
+                "de": "Hallo von Sonata.",
+                "es": "Hola desde Sonata.",
+            }
             for index, voice in enumerate(order, 1):
                 result = _synthesize(
                     stub, messages, voices_dir / voice.key,
-                    "Hello from Sonata." if voice.key.startswith("en_")
-                    else "Bonjour depuis Sonata.",
+                    sample_text.get(voice.key[:2], "Testing Sonata."),
                 )
                 report["voices"][voice.key].setdefault("synthesis", []).append(result)
                 report[f"switch_{index}"] = voice.key

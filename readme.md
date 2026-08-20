@@ -13,13 +13,11 @@ This add-on uses [Sonata: A cross-platform Rust engine for neural TTS models](ht
 
 ## Downloading the add-on
 
-You can find the add-on package under the assets section of the [release page](https://github.com/mush42/sonata-nvda/releases/latest)
+You can find the NVDA 2026 AMD64 fork under the assets section of its [release page](https://github.com/rezaei-hossein-python/sonata-nvda/releases/latest).
 
 ## Adding voices
 
-The add-on is just  a driver, it comes with no voices by default. You need to download and install the voices you want from the voice manager.
-
-Upon installing the add-on and restarting NVDA, the add-on will ask you to download and install at least one voice, and it will give you the option to open the voice manager.
+The add-on includes a small multilingual offline starter pack. English, French, German, and Spanish voices are installed automatically without replacing an existing voice directory. Additional languages and voices remain available from the online voice manager.
 
 You can also open the voice manager from NVDA's main menu.
 
@@ -38,3 +36,7 @@ Luckily, the `Piper` developer and some developers from the blind and vision-imp
 # License
 
 Copyright(c) 2024, Musharraf Omer. This software is licensed under The GNU GENERAL PUBLIC LICENSE Version 2 (GPL v2).
+
+The original project and Sonata engine are by Musharraf Omer. The NVDA 2026 AMD64 fork is maintained by Hosein Rezaii <rezaii.hosein@gmail.com>. Original authorship, copyright, and project history are preserved.
+
+Bundled starter voice models are separate data works. Their original `MODEL_CARD` files and the starter-pack license inventory are included with the package.

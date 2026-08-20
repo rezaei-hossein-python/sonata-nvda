@@ -41,6 +41,9 @@ def test_driver_lifecycle_is_instance_scoped_and_partial_init_safe():
     assert "aio.initialize()" not in module_prefix
     assert "grpc_client.initialize()" not in module_prefix
     assert "grpc_client.terminate()" in source
+    assert "super().terminate()" in source
+    assert "self._unregisterConfigSaveAction()" in source
+    assert 'getattr(self, "_sonata_terminated", False)' in source
     assert 'getattr(self, "_current_task", None)' in source
     assert 'getattr(self, "_player", None)' in source
 

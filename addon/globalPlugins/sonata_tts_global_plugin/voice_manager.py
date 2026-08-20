@@ -12,6 +12,7 @@ import os
 import shutil
 import tempfile
 import threading
+import wave
 import winsound
 
 import wx
@@ -349,12 +350,31 @@ class OnlineSonataVoicesPanel(SizedPanel):
         mp3url = selected_voice.get_preview_url(speaker_idx=speaker_idx)
         AsyncSnakDialog(
             # Translators: message in a dialog
-            message=_("Playing preview..."),
+            message=_("Loading and playing preview..."),
             executor=aio.THREADED_EXECUTOR,
             func=functools.partial(play_remote_mp3, mp3url),
-            done_callback=lambda future: True,
+            done_callback=self._on_preview_complete,
             parent=self.GetTopLevelParent()
         )
+
+    def _on_preview_complete(self, future):
+        try:
+            future.result()
+        except Exception:
+            log.exception("Voice preview failed", exc_info=True)
+            gui.messageBox(
+                # Translators: accessible error shown when a voice preview fails.
+                _(
+                    "The voice preview could not be played.\n"
+                    "Check your Internet connection and audio device, then try again."
+                ),
+                # Translators: title of a voice preview error message.
+                _("Preview failed"),
+                style=wx.OK | wx.ICON_ERROR,
+                parent=self.GetTopLevelParent(),
+            )
+        finally:
+            self.voices_list.SetFocus()
 
     def on_download(self, event):
 
@@ -456,14 +476,26 @@ class SonataVoiceManagerDialog(SimpleDialog):
 
 
 def play_remote_mp3(mp3_url):
-    resp = voice_download.request.get(mp3_url)
+    log.info(f"Downloading voice preview from {mp3_url}")
+    resp = voice_download.request.get(mp3_url, max_redirects=10, timeout=30)
     resp.raise_for_status()
+    if not resp.body:
+        raise RuntimeError("Voice preview download returned no audio bytes")
+    log.info(
+        f"Downloaded voice preview: HTTP {resp.status_code}, {len(resp.body)} bytes"
+    )
     decoded_file = miniaudio.decode(resp.body, nchannels=1, sample_rate=22050)
     with tempfile.TemporaryDirectory() as tempdir:
         wav_file = os.path.join(tempdir, "speaker_0.wav")
-        miniaudio.wav_write_file(wav_file, decoded_file)
-        winsound.PlaySound(
-            wav_file,
-            winsound.SND_FILENAME | winsound.SND_PURGE
-        )
+        # miniaudio 1.59's CFFI WAV writer is not compatible with NVDA's
+        # Python 3.13 runtime. The decoded signed-16 PCM is valid, so serialize
+        # it with the standard library without touching the decode path.
+        with wave.open(wav_file, "wb") as wav_output:
+            wav_output.setnchannels(decoded_file.nchannels)
+            wav_output.setsampwidth(decoded_file.sample_width)
+            wav_output.setframerate(decoded_file.sample_rate)
+            wav_output.writeframes(decoded_file.samples.tobytes())
+        # SND_PURGE is a stop request, not a playback option. Play synchronously
+        # so the temporary WAV remains available through completion.
+        winsound.PlaySound(wav_file, winsound.SND_FILENAME)
 
