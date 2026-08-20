@@ -95,14 +95,6 @@ class SonataVoice:
             location=path,
             properties={"quality": quality.lower()},
         )
-def _normalize_config(self, original_path):
-    """Normalization disabled for NVDA 2026 AMD64 port.
-
-    Upstream v3.1.0 does not perform runtime normalization of voice config files.
-    To preserve original Sonata behavior and avoid modifying shipped voice
-    artifacts, this shim always returns the original path unchanged.
-    """
-    return str(original_path)
 
     def load(self):
         if self.remote_id:
@@ -114,7 +106,7 @@ def _normalize_config(self, original_path):
                 f"Could not load voice from `{os.fspath(self.location)}`"
             )
         voice_info = grpc_client.load_voice(
-            os.fspath(self._normalize_config(self.config_path))
+            os.fspath(self.config_path)
         ).result()
         self.remote_id = voice_info.voice_id
         self.supports_streaming_output = voice_info.supports_streaming_output

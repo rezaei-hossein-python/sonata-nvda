@@ -284,10 +284,9 @@ class PiperVoiceDownloader:
         hasher = md5()
         total_size = file.size_in_bytes
         downloaded_til_now = 0
-        with request.yield_response('GET', file.download_url) as response:
-            if response.status == 302:
-                file.download_url = response.getheader("Location")
-                return cls._do_download_file(file, download_dir, progress_callback)
+        with request.yield_response(
+            'GET', file.download_url, max_redirects=10
+        ) as response:
             file_buffer = open(target_file, "wb")
             while True:
                 chunk = response.read(4096)
@@ -402,10 +401,9 @@ class PiperRTVoiceDownloader:
     @classmethod
     def _do_download_archive(cls, download_url, voice_name, download_dir, progress_callback):
         target_file = os.path.join(download_dir, voice_name)
-        with request.yield_response('GET', download_url) as response:
-            if response.status == 302:
-                download_url = response.getheader("Location")
-                return cls._do_download_archive(download_url, voice_name, download_dir, progress_callback)
+        with request.yield_response(
+            'GET', download_url, max_redirects=10
+        ) as response:
             total_size = int(response.getheader("Content-Length"))
             downloaded_til_now = 0
             file_buffer = open(target_file, "wb")
@@ -495,10 +493,10 @@ def get_available_voices(force_online=False):
                 not_installed.append(value)
             voice_objs = PiperVoice.from_list_of_dicts(not_installed)
             return voice_objs
-    std_resp = request.get(PIPER_VOICE_LIST_URL)
+    std_resp = request.get(PIPER_VOICE_LIST_URL, max_redirects=10)
     std_resp.raise_for_status()
     std_voices = std_resp.json()
-    rt_resp = request.get(RT_VOICE_LIST_URL)
+    rt_resp = request.get(RT_VOICE_LIST_URL, max_redirects=10)
     rt_resp.raise_for_status()
     rt_voice_names = {
         vdata["base"]

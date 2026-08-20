@@ -3,9 +3,6 @@
 # Copyright (c) 2023 Musharraf Omer
 # This file is covered by the GNU General Public License.
 
-import os
-import sys
-
 import wx
 
 import core
@@ -18,18 +15,11 @@ import addonHandler
 addonHandler.initTranslation()
 
 
-_DIR = os.path.abspath(os.path.dirname(__file__))
-_ADDON_ROOT = os.path.abspath(os.path.join(_DIR, os.pardir, os.pardir))
-_TTS_MODULE_DIR = os.path.join(_ADDON_ROOT, "synthDrivers")
-sys.path.insert(0, _TTS_MODULE_DIR)
-from sonata_neural_voices import helpers
-from sonata_neural_voices import aio
-from sonata_neural_voices.tts_system import (
-    SonataTextToSpeechSystem,
+from synthDrivers.sonata_neural_voices import aio, helpers
+from synthDrivers.sonata_neural_voices.tts_system import (
     SONATA_VOICES_DIR,
+    SonataTextToSpeechSystem,
 )
-sys.path.remove(_TTS_MODULE_DIR)
-del _DIR, _ADDON_ROOT, _TTS_MODULE_DIR
 
 from .voice_manager import SonataVoiceManagerDialog
 
@@ -78,36 +68,3 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             gui.mainFrame.sysTrayIcon.menu.DestroyItem(self.itemHandle)
         except:
             pass
-        # Ensure the GRPC backend is terminated when NVDA exits. Import the TTS module
-        # from the add-on's synthDrivers and call its grpc_client.terminate() to stop
-        # any running sonata-grpc process that this NVDA instance started.
-        try:
-            _TTS_MODULE_DIR = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)), "synthDrivers")
-            if _TTS_MODULE_DIR not in sys.path:
-                sys.path.insert(0, _TTS_MODULE_DIR)
-                added = True
-            else:
-                added = False
-            try:
-                from sonata_neural_voices import grpc_client
-                try:
-                    grpc_client.terminate()
-                except Exception:
-                    log.exception("Failed to terminate sonata grpc via global plugin", exc_info=True)
-            finally:
-                if added:
-                    try:
-                        sys.path.remove(_TTS_MODULE_DIR)
-                    except Exception:
-                        pass
-            # Best-effort OS-level cleanup: terminate any lingering sonata-grpc.exe processes
-            try:
-                import subprocess as _subp
-                _subp.run(["taskkill", "/IM", "sonata-grpc.exe", "/F"], check=False, stdout=_subp.DEVNULL, stderr=_subp.DEVNULL)
-            except Exception:
-                try:
-                    log.exception("Failed to taskkill sonata-grpc.exe processes", exc_info=True)
-                except Exception:
-                    pass
-        except Exception:
-            log.exception("Failed in global plugin terminate cleanup", exc_info=True)

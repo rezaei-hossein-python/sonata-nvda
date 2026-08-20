@@ -33,7 +33,6 @@ from . import grpc_client
 from ._config import SonataConfig
 from .helpers import update_displaied_params_on_voice_change
 from .aio import (
-    ASYNCIO_EVENT_LOOP,
     CancelledError,
     asyncio,
     asyncio_cancel_task,
@@ -49,10 +48,6 @@ from .tts_system import (
 import addonHandler
 
 addonHandler.initTranslation()
-
-
-aio.initialize()
-_GRPC_IS_INIT = grpc_client.initialize()
 
 
 class DoneSpeakingTask:
@@ -150,7 +145,7 @@ async def _process_speech_sequence(speech_seq):
 @asyncio_coroutine_to_concurrent_future
 async def process_speech(speech_seq):
     speech_task = _process_speech_sequence(speech_seq)
-    return ASYNCIO_EVENT_LOOP.create_task(speech_task)
+    return aio.ASYNCIO_EVENT_LOOP.create_task(speech_task)
 
 
 
@@ -188,8 +183,10 @@ class SynthDriver(synthDriverHandler.SynthDriver):
 
     def __init__(self):
         super().__init__()
+        aio.initialize()
+        grpc_is_initialized = grpc_client.initialize()
         try:
-            _GRPC_IS_INIT.result()
+            grpc_is_initialized.result(timeout=15)
         except:
             log.exception(
                 f"Failed to initialize Sonata services. Synthesizer will not be available.",
@@ -238,10 +235,15 @@ class SynthDriver(synthDriverHandler.SynthDriver):
 
     def terminate(self):
         self.cancel()
-        self.tts.shutdown()
-        for player in self._players.values():
-            player.close()
-        self._players.clear()
+        tts = getattr(self, "tts", None)
+        if tts is not None:
+            tts.shutdown()
+        players = getattr(self, "_players", None)
+        if players is not None:
+            for player in players.values():
+                player.close()
+            players.clear()
+        grpc_client.terminate()
 
     def speak(self, speechSequence):
         with self.tts.create_synthesis_context():
@@ -364,9 +366,12 @@ class SynthDriver(synthDriverHandler.SynthDriver):
         ).result()
 
     def cancel(self):
-        if self._current_task is not None:
-            asyncio_cancel_task(self._current_task)
-        self._player.stop()
+        current_task = getattr(self, "_current_task", None)
+        if current_task is not None:
+            asyncio_cancel_task(current_task)
+        player = getattr(self, "_player", None)
+        if player is not None:
+            player.stop()
 
     def pause(self, switch):
         self._player.pause(switch)

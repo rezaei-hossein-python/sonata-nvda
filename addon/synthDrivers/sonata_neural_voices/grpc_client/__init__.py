@@ -5,7 +5,6 @@ import atexit
 import os
 import subprocess
 import time
-import sys
 from pathlib import Path
 
 import globalVars
@@ -140,134 +139,60 @@ async def initialize():
 
 @atexit.register
 def terminate():
-    global CHANNEL, GRPC_SERVER_PROCESS, SONATA_GRPC_SERVER_PORT
+    global CHANNEL, GRPC_SERVER_PROCESS, SONATA_GRPC_SERVER_PORT, SONATA_GRPC_SERVICE
     pidfile = os.path.join(SONATA_VOICES_BASE_DIR, "sonata_grpc.pid")
+    channel = CHANNEL
+    process = GRPC_SERVER_PROCESS
+    CHANNEL = None
+    SONATA_GRPC_SERVICE = None
+    GRPC_SERVER_PROCESS = None
     SONATA_GRPC_SERVER_PORT = None
-    # Attempt to close gRPC channel cleanly before stopping asyncio loop
-    try:
-        if CHANNEL is not None:
-            try:
-                import asyncio as _asyncio
-                # Prefer closing the channel on the aio event loop and wait briefly
-                try:
-                    fut = _asyncio.run_coroutine_threadsafe(CHANNEL.close(), aio.ASYNCIO_EVENT_LOOP)
-                    fut.result(timeout=3)
-                except Exception:
-                    try:
-                        aio.asyncio_create_task(CHANNEL.close())
-                    except Exception:
-                        pass
-            except Exception:
-                pass
-            finally:
-                CHANNEL = None
-                SONATA_GRPC_SERVICE = None
-    except Exception:
-        log.exception("Failed while closing GRPC channel", exc_info=True)
 
-    # Stop the aio event loop and thread pool
-    try:
-        aio.terminate()
-    except Exception:
-        log.exception("Failed to terminate aio event loop", exc_info=True)
-
-    # Prefer terminating the subprocess handle we own
-    if GRPC_SERVER_PROCESS is not None:
+    if channel is not None and aio.ASYNCIO_EVENT_LOOP is not None:
         try:
-            pid = getattr(GRPC_SERVER_PROCESS, "pid", None)
-            # Attempt graceful shutdown on Windows first
-            try:
-                import signal, time
-                if sys.platform == "win32" and pid is not None:
-                    try:
-                        import psutil
-                        p = psutil.Process(pid)
-                        if p.is_running():
-                            try:
-                                p.send_signal(signal.CTRL_BREAK_EVENT)
-                                p.wait(timeout=2)
-                            except Exception:
-                                pass
-                    except Exception:
-                        try:
-                            os.kill(pid, signal.CTRL_BREAK_EVENT)
-                        except Exception:
-                            pass
-            except Exception:
-                pass
-
-            try:
-                GRPC_SERVER_PROCESS.terminate()
-            except Exception:
-                try:
-                    GRPC_SERVER_PROCESS.kill()
-                except Exception:
-                    log.exception("Failed to terminate Sonata GRPC process via handle", exc_info=True)
+            asyncio.run_coroutine_threadsafe(
+                channel.close(), aio.ASYNCIO_EVENT_LOOP
+            ).result(timeout=5)
         except Exception:
-            log.exception("Failed while attempting to stop owned Sonata GRPC process", exc_info=True)
-        GRPC_SERVER_PROCESS = None
+            log.debugWarning("Failed to close Sonata GRPC channel cleanly", exc_info=True)
 
-    # If pidfile exists, and contains a pid, try a best-effort cleanup when it appears to belong to this profile
+    if process is not None and process.poll() is None:
+        try:
+            process.terminate()
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            log.warning("Sonata GRPC server did not terminate in time; killing it")
+            process.kill()
+            process.wait(timeout=5)
+        except Exception:
+            log.exception("Failed to terminate Sonata GRPC process", exc_info=True)
+
+    for attribute in ("SONATA_GRPC_SERVER_PORT", "GRPC_SERVER_PROCESS"):
+        if hasattr(globalVars, attribute):
+            delattr(globalVars, attribute)
     try:
-        if os.path.exists(pidfile):
-            with open(pidfile, "r", encoding="utf-8") as f:
-                data = f.read().strip().split("\n")
-            if len(data) >= 2:
-                try:
-                    existing_port = int(data[0])
-                    existing_pid = int(data[1])
-                    # Attempt to kill only if process still exists and appears to be our server (port check)
-                    import socket, signal
-                    try:
-                        s = socket.socket()
-                        s.settimeout(0.5)
-                        s.connect(("127.0.0.1", existing_port))
-                        s.close()
-                        # Process still listening; try to terminate gracefully first
-                        try:
-                            # Prefer psutil if available for graceful termination
-                            import psutil
+        os.remove(pidfile)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        log.debugWarning("Failed to remove Sonata GRPC pidfile", exc_info=True)
 
-                            p = psutil.Process(existing_pid)
-                            if p.is_running():
-                                try:
-                                    if sys.platform == "win32":
-                                        p.send_signal(signal.CTRL_BREAK_EVENT)
-                                        try:
-                                            p.wait(timeout=2)
-                                        except Exception:
-                                            pass
-                                except Exception:
-                                    pass
-                                try:
-                                    p.terminate()
-                                    p.wait(timeout=2)
-                                except Exception:
-                                    try:
-                                        p.kill()
-                                    except Exception:
-                                        pass
-                        except Exception:
-                            try:
-                                os.kill(existing_pid, signal.SIGTERM)
-                            except Exception:
-                                pass
-                    except Exception:
-                        # Not listening anymore
-                        pass
-                except Exception:
-                    pass
-            try:
-                os.remove(pidfile)
-            except Exception:
-                pass
-    except Exception:
-        log.exception("Failed during sonata_grpc pidfile cleanup", exc_info=True)
+    aio.terminate()
 
 
 @aio.asyncio_coroutine_to_concurrent_future
 async def check_grpc_server(timeout=15) -> str:
-    return await asyncio.wait_for(get_sonata_version(), timeout)
+    deadline = asyncio.get_running_loop().time() + timeout
+    while True:
+        remaining = deadline - asyncio.get_running_loop().time()
+        if remaining <= 0:
+            raise TimeoutError("Timed out waiting for Sonata GRPC server")
+        try:
+            return await asyncio.wait_for(get_sonata_version(), remaining)
+        except grpc.aio.AioRpcError as error:
+            if error.code() != grpc.StatusCode.UNAVAILABLE:
+                raise
+            await asyncio.sleep(min(0.1, remaining))
 
 
 async def get_sonata_version():
@@ -277,28 +202,6 @@ async def get_sonata_version():
 
 @aio.asyncio_coroutine_to_concurrent_future
 async def load_voice(config_path):
-    """Load a voice, ensuring the config is backend-compatible.
-    If the JSON uses single-char->id mappings (phoneme_id_map) or char->list (phoneme_map),
-    write a backend-friendly .sonata.json that includes both `phoneme_id_map` (char->list)
-    and `phoneme_map` (id->char with numeric-string keys) and pass that path to the server.
-    """
-    try:
-        # Delegate normalization to the permanent normalizer in tts_system.
-        from pathlib import Path
-        pth = Path(config_path)
-        if pth.exists():
-            try:
-                # Import locally to avoid top-level circular imports.
-                from ..tts_system import SonataVoice
-
-                normalized = SonataVoice._normalize_config(None, str(pth))
-                if normalized and normalized != str(pth):
-                    config_path = str(normalized)
-            except Exception:
-                # Fall back to passing the original config path if normalization fails
-                pass
-    except Exception:
-        pass
     req = msgs.VoicePath(config_path=config_path)
     return await SONATA_GRPC_SERVICE.LoadVoice(req)
 

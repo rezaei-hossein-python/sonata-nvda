@@ -12,22 +12,25 @@ from .helpers import import_bundled_library
 
 
 THREADED_EXECUTOR = None
-ASYNCIO_EVENT_LOOP = asyncio.new_event_loop()
+ASYNCIO_EVENT_LOOP = None
 ASYNCIO_LOOP_THREAD = None
 
 
 def initialize():
     global THREADED_EXECUTOR, ASYNCIO_EVENT_LOOP, ASYNCIO_LOOP_THREAD
 
-    THREADED_EXECUTOR = ThreadPoolExecutor(
-        max_workers=os.cpu_count() // 2, thread_name_prefix="piper4nvda_executor"
-    )
-
-    if ASYNCIO_LOOP_THREAD:
+    if ASYNCIO_LOOP_THREAD and ASYNCIO_LOOP_THREAD.is_alive():
         log.warning(
             "Attempted to start the asyncio eventloop while it is already running"
         )
         return
+    if THREADED_EXECUTOR is None:
+        THREADED_EXECUTOR = ThreadPoolExecutor(
+            max_workers=max(1, (os.cpu_count() or 2) // 2),
+            thread_name_prefix="piper4nvda_executor",
+        )
+    if ASYNCIO_EVENT_LOOP is None or ASYNCIO_EVENT_LOOP.is_closed():
+        ASYNCIO_EVENT_LOOP = asyncio.new_event_loop()
 
     def _thread_target():
         log.info("Starting asyncio event loop")
@@ -42,20 +45,50 @@ def initialize():
 
 def terminate():
     global THREADED_EXECUTOR, ASYNCIO_LOOP_THREAD, ASYNCIO_EVENT_LOOP
-    log.info("Shutting down the thread pool executor")
-    THREADED_EXECUTOR.shutdown()
-    THREADED_EXECUTOR = None
-    if ASYNCIO_LOOP_THREAD:
+    loop = ASYNCIO_EVENT_LOOP
+    thread = ASYNCIO_LOOP_THREAD
+    if loop is not None and thread is not None and thread.is_alive():
+        log.info("Cancelling pending asyncio tasks")
+
+        async def cancel_pending_tasks():
+            current = asyncio.current_task(loop=loop)
+            pending = [
+                task for task in asyncio.all_tasks(loop)
+                if task is not current and not task.done()
+            ]
+            for task in pending:
+                task.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
+
+        try:
+            asyncio.run_coroutine_threadsafe(
+                cancel_pending_tasks(), loop
+            ).result(timeout=5)
+        except Exception:
+            log.debugWarning("Failed to cancel all pending asyncio tasks", exc_info=True)
         log.info("Shutting down asyncio event loop")
-        ASYNCIO_EVENT_LOOP.call_soon_threadsafe(ASYNCIO_EVENT_LOOP.stop)
-        ASYNCIO_LOOP_THREAD = None
+        loop.call_soon_threadsafe(loop.stop)
+        thread.join(timeout=5)
+    ASYNCIO_LOOP_THREAD = None
+    if THREADED_EXECUTOR is not None:
+        log.info("Shutting down the thread pool executor")
+        THREADED_EXECUTOR.shutdown(wait=True, cancel_futures=True)
+        THREADED_EXECUTOR = None
+    if loop is not None and not loop.is_running() and not loop.is_closed():
+        loop.close()
+    ASYNCIO_EVENT_LOOP = None
 
 
 def asyncio_create_task(coro):
+    if ASYNCIO_EVENT_LOOP is None:
+        raise RuntimeError("Sonata asyncio event loop is not initialized")
     return ASYNCIO_EVENT_LOOP.call_soon_threadsafe(ASYNCIO_EVENT_LOOP.create_task, coro)
 
 
 def asyncio_cancel_task(task):
+    if ASYNCIO_EVENT_LOOP is None:
+        return
     ASYNCIO_EVENT_LOOP.call_soon_threadsafe(task.cancel)
 
 
@@ -64,6 +97,8 @@ def asyncio_coroutine_to_concurrent_future(async_func):
 
     @wraps(async_func)
     def wrapper(*args, **kwargs):
+        if ASYNCIO_EVENT_LOOP is None:
+            raise RuntimeError("Sonata asyncio event loop is not initialized")
         return asyncio.run_coroutine_threadsafe(
             async_func(*args, **kwargs), loop=ASYNCIO_EVENT_LOOP
         )
@@ -88,5 +123,7 @@ def call_threaded(func: t.Callable[..., None]) -> t.Callable[..., "Future"]:
 
 
 def run_in_executor(func, *args, **kwargs):
+    if ASYNCIO_EVENT_LOOP is None or THREADED_EXECUTOR is None:
+        raise RuntimeError("Sonata async services are not initialized")
     callable = partial(func, *args, **kwargs)
     return ASYNCIO_EVENT_LOOP.run_in_executor(THREADED_EXECUTOR, callable)
