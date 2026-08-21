@@ -5,7 +5,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 'nvdaPiperDriver' '3.2.0'\n"
+"Project-Id-Version: 'nvdaPiperDriver' '3.2.1'\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
 "POT-Creation-Date: 2024-05-16 20:58+0200\n"
 "PO-Revision-Date: 2024-07-18 15:30+0500\n"

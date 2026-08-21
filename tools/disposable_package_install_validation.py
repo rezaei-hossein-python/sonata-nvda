@@ -11,11 +11,13 @@ from pathlib import Path
 
 
 class Logger:
-    def info(self, message):
-        print(message)
+    def _write(self, message, *args, **kwargs):
+        print(message % args if args else message)
 
-    def debug(self, message):
-        print(message)
+    info = _write
+    debug = _write
+    warning = _write
+    error = _write
 
 
 def main():
@@ -36,15 +38,18 @@ def main():
         raise RuntimeError("Unexpected add-on ID in package manifest")
     if 'summary = "NVDA Piper Driver"' not in addon_manifest:
         raise RuntimeError("Unexpected display name in package manifest")
-    if "version = 3.2.0" not in addon_manifest:
+    if "version = 3.2.1" not in addon_manifest:
         raise RuntimeError("Unexpected version in package manifest")
 
     global_vars = types.ModuleType("globalVars")
     global_vars.appArgs = types.SimpleNamespace(configPath=str(profile))
     log_handler = types.ModuleType("logHandler")
     log_handler.log = Logger()
+    addon_handler = types.ModuleType("addonHandler")
+    addon_handler.getAvailableAddons = lambda: iter(())
     sys.modules["globalVars"] = global_vars
     sys.modules["logHandler"] = log_handler
+    sys.modules["addonHandler"] = addon_handler
     sys.path.insert(0, str(addon))
     try:
         spec = importlib.util.spec_from_file_location(
@@ -83,7 +88,7 @@ def main():
         "addon_discovered": addon.is_dir(),
         "addon_id": "nvdaPiperDriver",
         "addon_display_name": "NVDA Piper Driver",
-        "addon_version": "3.2.0",
+        "addon_version": "3.2.1",
         "starter_voice_count": len(installed),
         "starter_voices_visible": installed == expected,
         "starter_voices_offline": True,

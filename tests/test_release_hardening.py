@@ -56,7 +56,7 @@ def test_maintainer_and_patch_version_metadata():
     build_vars = runpy.run_path(str(root / "buildVars.py"))["addon_info"]
     assert build_vars["addon_name"] == "nvdaPiperDriver"
     assert build_vars["addon_summary"] == "NVDA Piper Driver"
-    assert build_vars["addon_version"] == "3.2.0"
+    assert build_vars["addon_version"] == "3.2.1"
     assert "rezaii.hosein@gmail.com" in build_vars["addon_author"]
     assert "Musharraf Omer" in build_vars["addon_author"]
     assert build_vars["addon_publisher"] == (
@@ -67,12 +67,12 @@ def test_maintainer_and_patch_version_metadata():
     assert build_vars["addon_licenseURL"].startswith("https://")
     assert build_vars["addon_releaseURL"] == (
         "https://github.com/rezaei-hossein-python/sonata-nvda/releases/"
-        "download/v3.2.0/nvdaPiperDriver-3.2.0.nvda-addon"
+        "download/v3.2.1/nvdaPiperDriver-3.2.1.nvda-addon"
     )
 
 
 def test_generated_store_metadata_fields():
-    metadata = json.loads((root / "3.2.0.json").read_text(encoding="utf-8"))
+    metadata = json.loads((root / "3.2.1.json").read_text(encoding="utf-8"))
     required = {
         "addonId", "addonVersionNumber", "addonVersionName", "displayName",
         "publisher", "description", "minNVDAVersion", "lastTestedVersion",
@@ -81,7 +81,7 @@ def test_generated_store_metadata_fields():
     assert required <= metadata.keys()
     assert metadata["addonId"] == "nvdaPiperDriver"
     assert metadata["displayName"] == "NVDA Piper Driver"
-    assert metadata["addonVersionName"] == "3.2.0"
+    assert metadata["addonVersionName"] == "3.2.1"
     assert metadata["channel"] == "stable"
     assert metadata["URL"].startswith("https://")
     assert metadata["URL"].endswith(".nvda-addon")

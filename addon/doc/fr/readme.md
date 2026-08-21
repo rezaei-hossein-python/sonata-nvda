@@ -13,7 +13,7 @@ Cette extension maintenue utilise [Sonata : un moteur Rust multiplateforme pour 
 
 ## Téléchargement de l'extension
 
-Le package `nvdaPiperDriver-3.2.0.nvda-addon` est disponible sur la [page de la version 3.2.0](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.0).
+Le package `nvdaPiperDriver-3.2.1.nvda-addon` est disponible sur la [page de la version 3.2.1](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.1).
 
 ## Ajout de voix
 

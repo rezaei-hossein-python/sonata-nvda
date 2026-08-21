@@ -13,7 +13,7 @@
 
 ## Загрузка дополнения
 
-Пакет `nvdaPiperDriver-3.2.0.nvda-addon` доступен на [странице выпуска 3.2.0](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.0).
+Пакет `nvdaPiperDriver-3.2.1.nvda-addon` доступен на [странице выпуска 3.2.1](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.1).
 
 ## Добавление голосов
 

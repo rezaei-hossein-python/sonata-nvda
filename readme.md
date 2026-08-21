@@ -24,14 +24,14 @@ place for compatibility with existing voices and settings.
 
 ## Compatibility
 
-Version 3.2.0 is built and tested for **NVDA 2026.1.1 on 64-bit Windows**. It
+Version 3.2.1 is built and tested for **NVDA 2026.1.1 on 64-bit Windows**. It
 contains AMD64 native dependencies for NVDA's CPython 3.13 runtime. Compatibility
 with later NVDA releases or 32-bit Windows is not claimed.
 
 ## Installation
 
-1. Download `nvdaPiperDriver-3.2.0.nvda-addon` from the
-   [v3.2.0 release](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.0).
+1. Download `nvdaPiperDriver-3.2.1.nvda-addon` from the
+   [v3.2.1 release](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.1).
 2. Open the package and approve installation in NVDA.
 3. Restart NVDA when prompted.
 4. Open NVDA's speech settings and select **NVDA Piper Driver**.
@@ -45,9 +45,12 @@ The package includes these validated starter voices:
 - German: `de_DE-mls-medium`
 - Spanish: `es_ES-carlfm-x_low`
 
-They are installed locally and can be used immediately without downloading a
-voice. Existing directories with the same voice key are never overwritten or
-merged.
+On a genuinely fresh installation, these four voices are installed locally and
+can be used immediately without downloading a voice. Starter deployment is
+skipped during migration from Sonata Neural Voices and during updates from an
+existing NVDA Piper Driver installation. This prevents an update from adding
+anything to an established voice library. Existing voice files and directories
+are never overwritten or merged.
 
 ## Selecting NVDA Piper Driver and changing voices
 
@@ -87,10 +90,19 @@ provide them.
 
 ## Existing Sonata Neural Voices 3.1.1 users
 
-NVDA Piper Driver uses a new add-on ID, so NVDA may temporarily show it beside
-Sonata Neural Voices 3.1.1. Both use the same local voice library. Install and
-verify NVDA Piper Driver first, then remove the old Sonata Neural Voices add-on
-and restart NVDA. Removing the old add-on does not remove installed voices.
+NVDA Piper Driver uses a new add-on ID. When version 3.2.1 is installed, it
+detects Sonata Neural Voices 3.1.1 and schedules that exact legacy release for
+removal through NVDA's supported add-on lifecycle. Restart NVDA to complete the
+migration. Removing the old add-on does not remove installed voices, and the
+shared local voice library is never moved or rewritten by the migration.
+
+Bundled starter deployment is skipped during this migration. Existing users
+keep exactly the voice library they had before installation; missing starter
+voices are not silently added.
+
+Only Sonata Neural Voices 3.1.1 is removed automatically. Any other Sonata
+version is left installed for manual review rather than being removed by an
+assumption.
 
 The internal synthesizer ID remains `sonata_neural_voices`. After migration,
 reselect **NVDA Piper Driver** in NVDA's speech settings if necessary.
@@ -109,9 +121,11 @@ available after upgrading or rebranding.
 ## Updating and uninstalling
 
 Install a newer package over NVDA Piper Driver when an update is available and
-restart NVDA. To uninstall, use NVDA's Add-on Store or Add-on Manager and restart
-NVDA. Uninstalling the add-on leaves the shared local voice directory intact;
-voices may be removed separately through Voice Manager or manually by the user.
+restart NVDA. Updates skip bundled starter deployment and leave the existing
+voice tree byte-for-byte unchanged. To uninstall, use NVDA's Add-on Store or
+Add-on Manager and restart NVDA. Uninstalling the add-on leaves the shared local
+voice directory intact; voices may be removed separately through Voice Manager
+or manually by the user.
 
 ## Characteristics and limitations
 

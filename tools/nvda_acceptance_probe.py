@@ -3,6 +3,7 @@
 import json
 import os
 
+import core
 import globalPluginHandler
 import globalVars
 import speech
@@ -30,6 +31,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         self.report["failed_stage"] = stage
         self.report["exception"] = True
         self._save()
+        wx.CallLater(1500, core.triggerNVDAExit)
 
     def _exercise_sonata(self):
         try:
@@ -58,6 +60,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
                 speech.speakMessage(message)
                 self.report[f"starter_voice_{index}_speech"] = True
             self.report["voice_switching"] = synth.voice == selected_voices[-1]
+            additional_voices = sorted(set(voices) - set(selected_voices))
+            self.report["additional_voices"] = additional_voices
+            if additional_voices:
+                synth.voice = additional_voices[0]
+                speech.speakMessage("An existing downloaded voice is working.")
+                self.report["existing_downloaded_voice_speech"] = True
 
             speech.speakMessage(
                 "This is a deliberately longer NVDA Piper Driver sentence used to "
@@ -124,5 +132,6 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             self.report["duplicate_grpc_process_count"] = 0
             self.report["exception"] = False
             self._save()
+            wx.CallLater(2000, core.triggerNVDAExit)
         except Exception:
             self._fail("verify_exit_and_reselect")
