@@ -37,6 +37,15 @@ def test_sonata_storage_and_settings_paths_are_preserved():
     assert '"sonata", "voices", "piper"' in install_tasks
 
 
+def test_install_removes_only_legacy_3_1_1_and_preserves_voice_data():
+    install_tasks = (root / "addon/installTasks.py").read_text(encoding="utf-8")
+    assert '_LEGACY_ADDON_ID = "sonata_neural_voices"' in install_tasks
+    assert '_LEGACY_ADDON_VERSION = "3.1.1"' in install_tasks
+    assert "addon.requestRemove()" in install_tasks
+    assert "shutil.rmtree(voices_dir" not in install_tasks
+    assert "_remove_legacy_sonata()" in install_tasks
+
+
 def test_maintainer_and_upstream_attribution_are_both_public():
     readme = (root / "readme.md").read_text(encoding="utf-8")
     release_notes = (root / "docs/releases/3.2.0.md").read_text(encoding="utf-8")
@@ -57,5 +66,6 @@ def test_migration_documentation_preserves_voice_library():
 test_public_addon_identity_is_distinct()
 test_proven_internal_runtime_identity_is_preserved()
 test_sonata_storage_and_settings_paths_are_preserved()
+test_install_removes_only_legacy_3_1_1_and_preserves_voice_data()
 test_maintainer_and_upstream_attribution_are_both_public()
 test_migration_documentation_preserves_voice_library()
