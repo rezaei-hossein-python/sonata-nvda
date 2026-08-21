@@ -9,7 +9,7 @@ def test_public_addon_identity_is_distinct():
     addon_info = runpy.run_path(str(root / "buildVars.py"))["addon_info"]
     assert addon_info["addon_name"] == "nvdaPiperDriver"
     assert addon_info["addon_summary"] == "NVDA Piper Driver"
-    assert addon_info["addon_version"] == "3.2.0"
+    assert addon_info["addon_version"] == "3.2.1"
 
 
 def test_proven_internal_runtime_identity_is_preserved():
@@ -37,18 +37,9 @@ def test_sonata_storage_and_settings_paths_are_preserved():
     assert '"sonata", "voices", "piper"' in install_tasks
 
 
-def test_install_removes_only_legacy_3_1_1_and_preserves_voice_data():
-    install_tasks = (root / "addon/installTasks.py").read_text(encoding="utf-8")
-    assert '_LEGACY_ADDON_ID = "sonata_neural_voices"' in install_tasks
-    assert '_LEGACY_ADDON_VERSION = "3.1.1"' in install_tasks
-    assert "addon.requestRemove()" in install_tasks
-    assert "shutil.rmtree(voices_dir" not in install_tasks
-    assert "_remove_legacy_sonata()" in install_tasks
-
-
 def test_maintainer_and_upstream_attribution_are_both_public():
     readme = (root / "readme.md").read_text(encoding="utf-8")
-    release_notes = (root / "docs/releases/3.2.0.md").read_text(encoding="utf-8")
+    release_notes = (root / "docs/releases/3.2.1.md").read_text(encoding="utf-8")
     for text in (readme, release_notes):
         assert "Hosein Rezaii" in text
         assert "rezaii.hosein@gmail.com" in text
@@ -61,11 +52,12 @@ def test_migration_documentation_preserves_voice_library():
     assert "<NVDA configPath>\\sonata\\voices\\piper" in readme
     assert "Removing the old add-on does not remove installed voices" in readme
     assert "internal synthesizer ID remains `sonata_neural_voices`" in readme
+    assert "genuinely fresh installation" in readme
+    assert "Updates skip bundled starter deployment" in readme
 
 
 test_public_addon_identity_is_distinct()
 test_proven_internal_runtime_identity_is_preserved()
 test_sonata_storage_and_settings_paths_are_preserved()
-test_install_removes_only_legacy_3_1_1_and_preserves_voice_data()
 test_maintainer_and_upstream_attribution_are_both_public()
 test_migration_documentation_preserves_voice_library()

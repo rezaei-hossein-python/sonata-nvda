@@ -13,7 +13,7 @@ Este complemento mantenido utiliza [Sonata: un motor Rust multiplataforma para m
 
 ## Descargando el complemento
 
-El paquete `nvdaPiperDriver-3.2.0.nvda-addon` está disponible en la [página de la versión 3.2.0](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.0).
+El paquete `nvdaPiperDriver-3.2.1.nvda-addon` está disponible en la [página de la versión 3.2.1](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.1).
 
 ## Agregando voces
 

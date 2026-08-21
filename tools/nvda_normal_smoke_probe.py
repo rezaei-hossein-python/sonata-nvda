@@ -3,7 +3,9 @@
 import json
 import os
 
+import addonHandler
 import config
+import core
 import globalPluginHandler
 import globalVars
 import speech
@@ -38,6 +40,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
     def _start(self):
         try:
             self.report["initial_synth"] = synthDriverHandler.getSynth().name
+            self.initial_synth = self.report["initial_synth"]
+            self.report["nvda_piper_versions"] = [
+                addon.version
+                for addon in addonHandler.getAvailableAddons()
+                if addon.name == "nvdaPiperDriver" and not addon.isPendingInstall
+            ]
             self.report["sonata_available"] = bool(
                 synthDriverHandler.setSynth("sonata_neural_voices")
             )
@@ -74,16 +82,21 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
         try:
             if hasattr(self, "voice_manager_dialog"):
                 self.voice_manager_dialog.Destroy()
-            self.report["restored_espeak"] = bool(
-                synthDriverHandler.setSynth("espeak")
+            restore_synth = getattr(self, "initial_synth", "espeak")
+            self.report["restored_synth"] = restore_synth
+            self.report["previous_synth_restored"] = bool(
+                synthDriverHandler.setSynth(restore_synth)
             )
             self.report["sonata_grpc_exit"] = (
-                not hasattr(self, "process") or self.process.poll() is not None
+                restore_synth == "sonata_neural_voices"
+                or not hasattr(self, "process")
+                or self.process.poll() is not None
             )
-            config.conf["speech"]["synth"] = "espeak"
+            config.conf["speech"]["synth"] = restore_synth
             config.conf.save()
         except Exception:
-            log.exception("Failed to restore eSpeak after normal smoke", exc_info=True)
-            self.report["restored_espeak"] = False
+            log.exception("Failed to restore synth after normal smoke", exc_info=True)
+            self.report["previous_synth_restored"] = False
         self.report.setdefault("exception", False)
         self._save()
+        wx.CallLater(2000, core.triggerNVDAExit)

@@ -65,7 +65,26 @@ def test_dependency_free_msgfmt():
         output.unlink(missing_ok=True)
 
 
+def test_update_probe_uses_nvda_high_level_install_lifecycle():
+    source = (root / "tools" / "install_package_to_profile.py").read_text(
+        encoding="utf-8"
+    )
+    module = ast.parse(source)
+    imports = {
+        (node.module, alias.name)
+        for node in module.body
+        if isinstance(node, ast.ImportFrom)
+        for alias in node.names
+    }
+    assert ("addonStore.install", "installAddon") in imports
+    assert "installAddon(package)" in source
+    assert "extractall" not in source
+    assert "zipfile" not in source
+    assert ".pendingInstall" not in source
+
+
 test_sonata_voice_api_is_defined_on_class()
 test_runtime_normalization_is_absent()
 test_driver_lifecycle_is_instance_scoped_and_partial_init_safe()
 test_dependency_free_msgfmt()
+test_update_probe_uses_nvda_high_level_install_lifecycle()
