@@ -37,6 +37,9 @@ LIB_DIR = os.path.join(_PIPER_SYNTH_DIR, "lib")
 BIN_DIR = os.path.join(_PIPER_SYNTH_DIR, "bin")
 del _DIR, _PIPER_SYNTH_DIR
 
+_LEGACY_ADDON_ID = "sonata_neural_voices"
+_LEGACY_ADDON_VERSION = "3.1.1"
+
 
 def onUninstall():
     with _temporary_import_psutil() as psutil:
@@ -48,6 +51,23 @@ def onInstall():
         globalVars.appArgs.configPath, "sonata", "voices", "piper"
     )
     install_starter_voices(STARTER_PACK_DIRECTORY, voices_dir, logger=log)
+    _remove_legacy_sonata()
+
+
+def _remove_legacy_sonata():
+    """Schedule Sonata Neural Voices 3.1.1 for removal on NVDA restart."""
+    import addonHandler
+
+    for addon in addonHandler.getAvailableAddons():
+        if addon.name != _LEGACY_ADDON_ID or addon.version != _LEGACY_ADDON_VERSION:
+            continue
+        log.info(
+            "Scheduling legacy Sonata Neural Voices 3.1.1 for removal; "
+            "the shared Sonata voice directory is preserved"
+        )
+        addon.requestRemove()
+        return True
+    return False
 
 
 def force_kill_sonata_grpc_server(psutil):
