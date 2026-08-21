@@ -5,7 +5,7 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: 'sonata_neural_voices' '3.0-beta.2'\n"
+"Project-Id-Version: 'nvdaPiperDriver' '3.2.0'\n"
 "Report-Msgid-Bugs-To: 'nvda-translations@groups.io'\n"
 "POT-Creation-Date: 2024-05-16 20:58+0200\n"
 "PO-Revision-Date: 2024-07-18 15:30+0500\n"
@@ -21,8 +21,8 @@ msgstr ""
 
 #. Translators: label of a menu item
 #: addon\globalPlugins\sonata_tts_global_plugin\__init__.py:47
-msgid "Sonata &voice manager..."
-msgstr "Менеджер голосов &Sonata..."
+msgid "NVDA Piper Driver &voice manager..."
+msgstr "Менеджер &голосов NVDA Piper Driver..."
 
 #. Translators: Sonata's voice manager menu item help
 #: addon\globalPlugins\sonata_tts_global_plugin\__init__.py:49
@@ -46,8 +46,8 @@ msgstr ""
 #. Translators: Summary for this add-on
 #. to be shown on installation and add-on information found in Add-ons Manager.
 #: addon\globalPlugins\sonata_tts_global_plugin\__init__.py:70 buildVars.py:23
-msgid "Sonata Neural Voices"
-msgstr "Нейронные голоса Sonata"
+msgid "NVDA Piper Driver"
+msgstr "NVDA Piper Driver"
 
 #. Translators: the label of the OK button in a dialog
 #: addon\globalPlugins\sonata_tts_global_plugin\components.py:86
@@ -333,8 +333,8 @@ msgstr "Воспроизведение..."
 
 #. Translators: title of voice manager dialog
 #: addon\globalPlugins\sonata_tts_global_plugin\voice_manager.py:411
-msgid "Sonata voice manager"
-msgstr "Менеджер голосов Sonata"
+msgid "NVDA Piper Driver Voice Manager"
+msgstr "Менеджер голосов NVDA Piper Driver"
 
 #. Translators: label of a tab in a tab control
 #: addon\globalPlugins\sonata_tts_global_plugin\voice_manager.py:422

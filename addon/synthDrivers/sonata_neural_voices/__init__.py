@@ -173,7 +173,8 @@ class SynthDriver(synthDriverHandler.SynthDriver):
     }
     supportedNotifications = {synthIndexReached, synthDoneSpeaking}
 
-    description = "Sonata Neural Voices"
+    # Keep the internal driver name for settings and migration compatibility.
+    description = "NVDA Piper Driver"
     name = "sonata_neural_voices"
     cachePropertiesByDefault = False
 

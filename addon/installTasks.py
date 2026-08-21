@@ -5,6 +5,7 @@
 
 
 import contextlib
+import importlib.util
 import os
 import shutil
 import sys
@@ -13,7 +14,21 @@ import tempfile
 import globalVars
 from logHandler import log
 
-from starter_voices import STARTER_PACK_DIRECTORY, install_starter_voices
+try:
+    # NVDA 2026 imports install tasks inside the isolated addons.<id> package.
+    from .starter_voices import STARTER_PACK_DIRECTORY, install_starter_voices
+except ImportError:
+    # NVDA's synthetic add-on namespace has no searchable package path. Load
+    # this verified sibling explicitly; the module uses only the standard library.
+    _starter_path = os.path.join(os.path.dirname(__file__), "starter_voices.py")
+    _starter_spec = importlib.util.spec_from_file_location(
+        f"{__name__}._starter_voices", _starter_path
+    )
+    _starter_module = importlib.util.module_from_spec(_starter_spec)
+    _starter_spec.loader.exec_module(_starter_module)
+    STARTER_PACK_DIRECTORY = _starter_module.STARTER_PACK_DIRECTORY
+    install_starter_voices = _starter_module.install_starter_voices
+    del _starter_module, _starter_path, _starter_spec
 
 
 _DIR = os.path.abspath(os.path.dirname(__file__))

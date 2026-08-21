@@ -16,16 +16,16 @@ def _(arg):
 # Add-on information variables
 addon_info = {
 	# add-on Name/identifier, internal for NVDA
-	"addon_name": "sonata_neural_voices",
+	"addon_name": "nvdaPiperDriver",
 	# Add-on summary, usually the user visible name of the addon.
 	# Translators: Summary for this add-on
 	# to be shown on installation and add-on information found in Add-ons Manager.
-	"addon_summary": _("Sonata Neural Voices"),
+	"addon_summary": _("NVDA Piper Driver"),
 	# Add-on description
 	# Translators: Long description to be shown for this add-on on add-on information from add-ons manager
-	"addon_description": _("""Fast, local neural Piper voices for NVDA through the Sonata engine, with bundled offline starter voices and a voice manager for additional languages."""),
+	"addon_description": _("""NVDA Piper Driver is a maintained NVDA 2026 AMD64 adaptation of Sonata Neural Voices, originally developed by Musharraf Omer. It provides local neural Piper voices, bundled offline starter voices, and an accessible Voice Manager for installing additional voices."""),
 	# version
-	"addon_version": "3.1.1",
+	"addon_version": "3.2.0",
 	# Author(s)
 	"addon_author": "Musharraf Omer (upstream); Hosein Rezaii <rezaii.hosein@gmail.com> (maintainer)",
 	"addon_publisher": "Hosein Rezaii <rezaii.hosein@gmail.com>",
@@ -48,11 +48,12 @@ addon_info = {
 	# URL for the license document the ad-on is licensed under
 	"addon_licenseURL": "https://www.gnu.org/licenses/gpl-2.0.html",
 	# Permanent release asset URL used by generated Add-on Store metadata.
-	"addon_releaseURL": "https://github.com/rezaei-hossein-python/sonata-nvda/releases/download/v3.1.1/sonata_neural_voices-3.1.1.nvda-addon",
+	"addon_releaseURL": "https://github.com/rezaei-hossein-python/sonata-nvda/releases/download/v3.2.0/nvdaPiperDriver-3.2.0.nvda-addon",
 	"addon_changelog": (
-		"Adds NVDA 2026.1.1 AMD64 and CPython 3.13 compatibility, an invisible "
-		"managed backend, four offline starter voices, repaired online previews, "
-		"and updated fork maintainer information."
+		"Establishes the distinct NVDA Piper Driver maintained-fork identity while "
+		"preserving the proven Sonata runtime, existing local voice library, four "
+		"offline starter voices, accessible Voice Manager, and NVDA 2026.1.1 "
+		"AMD64/CPython 3.13 compatibility."
 	),
 }
 

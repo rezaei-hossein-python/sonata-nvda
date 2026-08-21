@@ -30,7 +30,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             json.dump(self.report, output, indent=2)
 
     def _fail(self, stage):
-        log.exception(f"Normal Sonata smoke failed at {stage}", exc_info=True)
+        log.exception(f"Normal NVDA Piper Driver smoke failed at {stage}", exc_info=True)
         self.report["failed_stage"] = stage
         self.report["exception"] = True
         self._restore()
@@ -43,7 +43,7 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             )
             synth = synthDriverHandler.getSynth()
             self.report["starter_voices_available"] = len(synth.availableVoices) >= 4
-            speech.speakMessage("Normal profile Sonata speech is working.")
+            speech.speakMessage("Normal profile NVDA Piper Driver speech is working.")
             self.report["normal_speech"] = True
             from globalPlugins.sonata_tts_global_plugin import voice_manager
             from synthDrivers.sonata_neural_voices import aio, grpc_client

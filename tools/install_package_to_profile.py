@@ -27,17 +27,17 @@ def main():
     package = args.package.resolve()
     profile = args.profile.resolve()
     addons = profile / "addons"
-    target = addons / "sonata_neural_voices"
+    target = addons / "nvdaPiperDriver"
     if target.exists():
         raise SystemExit(f"Refusing to overwrite existing add-on directory: {target}")
     addons.mkdir(parents=True, exist_ok=True)
-    temp = Path(tempfile.mkdtemp(prefix=".sonata-install-", dir=addons))
+    temp = Path(tempfile.mkdtemp(prefix=".nvda-piper-driver-install-", dir=addons))
     try:
         with zipfile.ZipFile(package) as archive:
             archive.extractall(temp)
         manifest = (temp / "manifest.ini").read_text(encoding="utf-8-sig")
-        if "name = sonata_neural_voices" not in manifest or "version = 3.1.1" not in manifest:
-            raise RuntimeError("Unexpected Sonata package manifest")
+        if "name = nvdaPiperDriver" not in manifest or "version = 3.2.0" not in manifest:
+            raise RuntimeError("Unexpected NVDA Piper Driver package manifest")
         os.rename(temp, target)
         temp = None
     finally:
@@ -60,7 +60,7 @@ def main():
         install_tasks.onInstall()
     finally:
         sys.path.remove(str(target))
-    print(f"Installed Sonata 3.1.1 from {package} into {profile}")
+    print(f"Installed NVDA Piper Driver 3.2.0 from {package} into {profile}")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-# Voces neuronales Sonata para NVDA
+# NVDA Piper Driver
 
 Este complemento implementa un controlador de sintetizador de voz para NVDA usando modelos neuronales TTS. Este soporta [Piper](https://github.com/rhasspy/piper).
 
@@ -6,18 +6,18 @@ Este complemento implementa un controlador de sintetizador de voz para NVDA usan
 
 Puedes escuchar las muestras de voz aquí: [Piper voice samples](https://rhasspy.github.io/piper-samples/).
 
-Este complemento utiliza [Sonata: un motor Rust multiplataforma para modelos neuronales TTS](https://github.com/mush42/ssonata) el cual está siendo desarrollado por Musharraf Omer.
+Este complemento mantenido utiliza [Sonata: un motor Rust multiplataforma para modelos neuronales TTS](https://github.com/mush42/sonata), desarrollado originalmente por Musharraf Omer.
 
 
 # Instalación
 
 ## Descargando el complemento
 
-Puedes encontrar el paquete de complemento dentro de la sección assets de la [página de release](https://github.com/mush42/sonata-nvda/releases/latest)
+El paquete `nvdaPiperDriver-3.2.0.nvda-addon` está disponible en la [página de la versión 3.2.0](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.0).
 
 ## Agregando voces
 
-El complemento es solo un controlador, por lo que no viene con voces por defecto. Necesitarías descargar e instalar las voces que quieras desde el administrador de voz.
+El complemento incluye cuatro voces sin conexión en inglés, francés, alemán y español. El administrador de voces permite descargar voces adicionales.
 
 También puedes abrir el administrador de voz desde el menú principal de NVDA.
 

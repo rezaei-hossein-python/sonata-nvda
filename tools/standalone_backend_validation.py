@@ -149,8 +149,21 @@ def _wait_for_backend(stub_class, messages, port, process):
     raise RuntimeError("sonata-grpc did not become ready")
 
 
+def _find_voice_config(voice_dir):
+    configs = list(voice_dir.glob("*.onnx.json"))
+    if not configs:
+        # Sonata RT archives contain encoder.onnx, decoder.onnx and a plain
+        # <voice>+RT-<quality>.json configuration file.
+        configs = list(voice_dir.glob("*.json"))
+    if len(configs) != 1:
+        raise RuntimeError(
+            f"expected exactly one voice config in {voice_dir}, found {configs}"
+        )
+    return configs[0]
+
+
 def _synthesize(stub, messages, voice_dir, text):
-    config = next(voice_dir.glob("*.onnx.json"))
+    config = _find_voice_config(voice_dir)
     voice_info = stub.LoadVoice(
         messages.VoicePath(config_path=str(config.resolve())), timeout=30
     )
@@ -210,6 +223,7 @@ def main():
             selected.append(voice)
         report = {
             "catalog_count": len(catalog),
+            "catalog_language_count": len({voice.language.code for voice in catalog}),
             "catalog_load": True,
             "voices": {},
         }

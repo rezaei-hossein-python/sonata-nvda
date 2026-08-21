@@ -34,9 +34,9 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             4,
             wx.ID_ANY,
             # Translators: label of a menu item
-            _("Sonata &voice manager..."),
-            # Translators: Sonata's voice manager menu item help
-            _("Open the voice manager to preview, install or download sonata voices"),
+            _("NVDA Piper Driver &voice manager..."),
+            # Translators: NVDA Piper Driver's voice manager menu item help
+            _("Open the voice manager to preview, install or download Piper voices"),
         )
         gui.mainFrame.sysTrayIcon.menu.Bind(wx.EVT_MENU, self.on_manager, self.itemHandle)
 
@@ -52,12 +52,12 @@ class GlobalPlugin(globalPluginHandler.GlobalPlugin):
             retval = gui.messageBox(
                 # Translators: message telling the user that no voice is installed
                 _(
-                    "No Sonata voice was found.\n"
+                    "No Piper voice was found.\n"
                     "You can preview and download voices from the voice manager.\n"
                     "Do you want to open the voice manager now?"
                 ),
-                # Translators: title of a message telling the user that no Sonata voice was found
-                _("Sonata Neural Voices"),
+                # Translators: title of a message telling the user that no Piper voice was found
+                _("NVDA Piper Driver"),
                 wx.YES_NO | wx.ICON_WARNING,
             )
             if retval == wx.YES:

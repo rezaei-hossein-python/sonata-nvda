@@ -1,4 +1,4 @@
-# Voix neuronales Sonata pour NVDA
+# NVDA Piper Driver
 
 Cette extension implémente un pilote de synthèse vocale pour NVDA utilisant  le modèles neuronaux TTS. Elle supporte [Piper](https://github.com/rhasspy/piper).
 
@@ -6,20 +6,18 @@ Cette extension implémente un pilote de synthèse vocale pour NVDA utilisant  l
 
 Vous pouvez écouter les extraits de voix de Piper ici : [Piper voice samples](https://rhasspy.github.io/piper-samples/).
 
-Cette extension utilise [Sonata : Un moteur Rust multiplateforme pour les modèles neuronaux TTS](https://github.com/mush42/ssonata) qui est développé par Musharraf Omer.
+Cette extension maintenue utilise [Sonata : un moteur Rust multiplateforme pour les modèles neuronaux TTS](https://github.com/mush42/sonata), développé à l'origine par Musharraf Omer.
 
 
 # Installation
 
 ## Téléchargement de l'extension
 
-Vous pouvez trouver le package de l'extension sous la section assets à partir de la [page release](https://github.com/mush42/sonata-nvda/releases/latest)
+Le package `nvdaPiperDriver-3.2.0.nvda-addon` est disponible sur la [page de la version 3.2.0](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.0).
 
 ## Ajout de voix
 
-L'extension n'est qu'un pilote, elle est livrée sans aucune voix par défaut. Vous devez télécharger et installer les voix souhaitées à partir du gestionnaire de voix.
-
-Lors de l'installation de l'extension et du redémarrage de NVDA, l'extension vous demandera de télécharger et d'installer au moins une voix, et vous donnera la possibilité d'ouvrir le gestionnaire de voix.
+L'extension inclut quatre voix hors ligne en anglais, français, allemand et espagnol. Le gestionnaire de voix permet de télécharger des voix supplémentaires.
 
 Vous pouvez également ouvrir le gestionnaire de voix depuis le menu principal de NVDA.
 

@@ -1,8 +1,9 @@
 # NVDA 2026.1+ AMD64 Port
 
-This port upgrades Sonata Neural Voices for NVDA 2026.1 (AMD64) and Python 3.13.
-Release 3.1.1 was validated with NVDA 2026.1.1. Later NVDA releases are not
-claimed until they have been tested.
+NVDA Piper Driver is the maintained public identity for this Sonata Neural
+Voices port for NVDA 2026.1 (AMD64) and Python 3.13. Release 3.2.0 is validated
+with NVDA 2026.1.1. Later NVDA releases are not claimed until tested. The
+internal Sonata runtime names are intentionally preserved for compatibility.
 
 ## Differences from Upstream 3.1.0
 - Replaced 32-bit (x86) Python `.pyd` dependencies with strictly matched `win_amd64` CP313 binaries.

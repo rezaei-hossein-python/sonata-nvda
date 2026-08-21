@@ -1,0 +1,44 @@
+NVDA Add-on Store manual registration packet
+NVDA Piper Driver 3.2.0
+
+Current official registration-form fields (checked 2026-08-20):
+
+Download URL:
+https://github.com/rezaei-hossein-python/sonata-nvda/releases/download/v3.2.0/nvdaPiperDriver-3.2.0.nvda-addon
+
+Source URL:
+https://github.com/rezaei-hossein-python/sonata-nvda
+
+Publisher:
+Hosein Rezaii
+
+Channel:
+stable
+
+License Name:
+GPL v2
+
+License URL:
+https://www.gnu.org/licenses/gpl-2.0.html
+
+Values derived from the release manifest:
+
+Add-on ID: nvdaPiperDriver
+Display name: NVDA Piper Driver
+Version: 3.2.0
+Minimum NVDA version: 2026.1.0
+Last tested NVDA version: 2026.1.1
+Maintainer contact: rezaii.hosein@gmail.com
+
+Submission notes:
+
+NVDA Piper Driver is a maintained fork of Sonata Neural Voices, originally
+developed by Musharraf Omer. A distinct add-on ID and display name are used to
+avoid conflict with the original Sonata identity. Upstream attribution and GPL
+licensing are preserved. This release provides NVDA 2026 AMD64 / CPython 3.13
+compatibility, four bundled offline starter voices, and an accessible Voice
+Manager for additional Piper voices. Existing Sonata voice libraries remain in
+the same local directory and are preserved during migration.
+
+This packet is for manual submission by Hosein Rezaii. It does not claim
+approval or endorsement by Musharraf Omer or NV Access.

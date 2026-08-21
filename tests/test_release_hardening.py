@@ -54,7 +54,9 @@ def test_hidden_backend_launch_and_owned_lifecycle():
 
 def test_maintainer_and_patch_version_metadata():
     build_vars = runpy.run_path(str(root / "buildVars.py"))["addon_info"]
-    assert build_vars["addon_version"] == "3.1.1"
+    assert build_vars["addon_name"] == "nvdaPiperDriver"
+    assert build_vars["addon_summary"] == "NVDA Piper Driver"
+    assert build_vars["addon_version"] == "3.2.0"
     assert "rezaii.hosein@gmail.com" in build_vars["addon_author"]
     assert "Musharraf Omer" in build_vars["addon_author"]
     assert build_vars["addon_publisher"] == (
@@ -65,21 +67,21 @@ def test_maintainer_and_patch_version_metadata():
     assert build_vars["addon_licenseURL"].startswith("https://")
     assert build_vars["addon_releaseURL"] == (
         "https://github.com/rezaei-hossein-python/sonata-nvda/releases/"
-        "download/v3.1.1/sonata_neural_voices-3.1.1.nvda-addon"
+        "download/v3.2.0/nvdaPiperDriver-3.2.0.nvda-addon"
     )
 
 
 def test_generated_store_metadata_fields():
-    metadata = json.loads((root / "3.1.1.json").read_text(encoding="utf-8"))
+    metadata = json.loads((root / "3.2.0.json").read_text(encoding="utf-8"))
     required = {
         "addonId", "addonVersionNumber", "addonVersionName", "displayName",
         "publisher", "description", "minNVDAVersion", "lastTestedVersion",
         "channel", "URL", "sha256", "sourceURL", "license", "translations",
     }
     assert required <= metadata.keys()
-    assert metadata["addonId"] == "sonata_neural_voices"
-    assert metadata["displayName"] == "Sonata Neural Voices"
-    assert metadata["addonVersionName"] == "3.1.1"
+    assert metadata["addonId"] == "nvdaPiperDriver"
+    assert metadata["displayName"] == "NVDA Piper Driver"
+    assert metadata["addonVersionName"] == "3.2.0"
     assert metadata["channel"] == "stable"
     assert metadata["URL"].startswith("https://")
     assert metadata["URL"].endswith(".nvda-addon")
@@ -100,6 +102,36 @@ def test_starter_manifest_and_payload_hashes():
                for voice in manifest["voices"])
     assert all(any(file_info["name"] == "MODEL_CARD" for file_info in voice["files"])
                for voice in manifest["voices"])
+    expected_hashes = {
+        "en_US-ljspeech-medium": {
+            "en_US-ljspeech-medium.onnx": "6f52a751e2349abe7a76735eb09dc1875298c77ea2342ffd2fef79ff81b87f22",
+            "en_US-ljspeech-medium.onnx.json": "141d612cc0a95ed7efc1ca936b845c2364967f2e9217c5dbfcf69fc4d6c65860",
+            "MODEL_CARD": "fbee1529c89d36b3fe76d7e9f3f832dce17f44900a52d76a9bda735654766b4d",
+        },
+        "fr_FR-mls-medium": {
+            "fr_FR-mls-medium.onnx": "0ed223f78466917f2bae05ee90096ce69ab1fdeb251f55590d0e7422d234e162",
+            "fr_FR-mls-medium.onnx.json": "252b0b0a6e4cc4949e23eccb956f9c779986c32f934f2f7e2191e5fdc2edca61",
+            "MODEL_CARD": "443ca90f1ed8e57d9fb802da6dc19c302d5d9b51ddbfbf27a17f3fb5c37ad154",
+        },
+        "de_DE-mls-medium": {
+            "de_DE-mls-medium.onnx": "69cd1d2aa5a35839a518966fcc4924b5f93e5f8c948ed0752b1a616ad53f65bf",
+            "de_DE-mls-medium.onnx.json": "b0af1c89ddfdc72d32e015729b0e89b99eec13c2c8caa1db7488d98e9e570b40",
+            "MODEL_CARD": "ca1bf03a3c287fb6968acfa010e1917f85f0aa59db0f371efc3a2857f4035ffd",
+        },
+        "es_ES-carlfm-x_low": {
+            "es_ES-carlfm-x_low.onnx": "d69677323a907cd4963f42b29c20a98b5d6bfa7f3e64df339915e4650c00d125",
+            "es_ES-carlfm-x_low.onnx.json": "d9bdfa9ff01eb2bc9e62e7d2593939d1e4c4d8eb7cf75f972731539d12399966",
+            "MODEL_CARD": "a6e62a3d36c37c7702d877f784001208b952e2bf4d17c72a6b5da442fbefb4b3",
+        },
+    }
+    actual_hashes = {
+        voice["key"]: {
+            file_info["name"]: file_info["sha256"]
+            for file_info in voice["files"]
+        }
+        for voice in manifest["voices"]
+    }
+    assert actual_hashes == expected_hashes
 
 
 def write_fixture_manifest(payload, key, contents):
@@ -193,9 +225,33 @@ def test_preview_url_and_failure_handling():
     assert "winsound.SND_FILENAME" in player_source
 
 
+def test_standalone_validator_accepts_real_rt_config_names():
+    backend_validation = load_module(
+        "standalone_backend_rt_validation",
+        root / "tools/standalone_backend_validation.py",
+    )
+    with tempfile.TemporaryDirectory() as temp:
+        voice_dir = Path(temp) / "en_US-lessac+RT-low"
+        voice_dir.mkdir()
+        config = voice_dir / "en_US-lessac+RT-low.json"
+        config.write_text("{}", encoding="utf-8")
+        (voice_dir / "encoder.onnx").write_bytes(b"encoder")
+        (voice_dir / "decoder.onnx").write_bytes(b"decoder")
+        assert backend_validation._find_voice_config(voice_dir) == config
+
+
+def test_install_tasks_supports_nvda_isolated_addon_namespace():
+    source = (root / "addon/installTasks.py").read_text(encoding="utf-8")
+    assert "from .starter_voices import" in source
+    assert "spec_from_file_location" in source
+    assert 'os.path.dirname(__file__), "starter_voices.py"' in source
+
+
 test_hidden_backend_launch_and_owned_lifecycle()
 test_maintainer_and_patch_version_metadata()
 test_generated_store_metadata_fields()
 test_starter_manifest_and_payload_hashes()
 test_starter_install_is_idempotent_and_non_destructive()
 test_preview_url_and_failure_handling()
+test_standalone_validator_accepts_real_rt_config_names()
+test_install_tasks_supports_nvda_isolated_addon_namespace()

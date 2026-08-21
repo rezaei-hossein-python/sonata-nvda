@@ -1,100 +1,147 @@
-# Sonata Neural Voices for NVDA
+# NVDA Piper Driver
 
-Sonata Neural Voices adds fast, local neural text-to-speech to NVDA using
-[Piper voice models](https://github.com/rhasspy/piper) through the
-[Sonata engine](https://github.com/mush42/sonata).
+## Overview
 
-This repository is a maintained NVDA 2026 AMD64 adaptation of the original
-[Sonata NVDA add-on](https://github.com/mush42/sonata-nvda) by Musharraf Omer.
-It updates the native dependencies for 64-bit NVDA and CPython 3.13 while
-preserving the original Sonata synthesis design.
+NVDA Piper Driver provides fast, local neural text-to-speech for NVDA using
+Piper voice models through the proven Sonata engine. This maintained fork is an
+NVDA 2026 AMD64 and CPython 3.13 adaptation of **Sonata Neural Voices**, which
+was originally developed by Musharraf Omer.
+
+This release changes the public add-on identity without rewriting Sonata's
+synthesis implementation. The internal Sonata driver and data paths remain in
+place for compatibility with existing voices and settings.
+
+## Features
+
+- Local neural Piper speech after a voice is installed.
+- Four bundled multilingual starter voices that work without Internet access.
+- An accessible Voice Manager for browsing, previewing, installing and removing
+  voices.
+- Additional multilingual voices from the existing Piper catalog.
+- Standard and fast/RT variants where the selected catalog voice provides them.
+- A hidden, managed `sonata-grpc.exe` backend with clean synth switching and
+  shutdown.
 
 ## Compatibility
 
-Version 3.1.1 was tested with NVDA 2026.1.1 on 64-bit Windows. Its manifest
-requires NVDA 2026.1 or later. Compatibility with 32-bit NVDA, older NVDA
-releases, ARM64 Windows, or later experimental NVDA releases has not been
-claimed or tested.
+Version 3.2.0 is built and tested for **NVDA 2026.1.1 on 64-bit Windows**. It
+contains AMD64 native dependencies for NVDA's CPython 3.13 runtime. Compatibility
+with later NVDA releases or 32-bit Windows is not claimed.
 
 ## Installation
 
-1. Download `sonata_neural_voices-3.1.1.nvda-addon` from the
-   [v3.1.1 release](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.1.1).
-2. Open the downloaded file and confirm installation in NVDA.
+1. Download `nvdaPiperDriver-3.2.0.nvda-addon` from the
+   [v3.2.0 release](https://github.com/rezaei-hossein-python/sonata-nvda/releases/tag/v3.2.0).
+2. Open the package and approve installation in NVDA.
 3. Restart NVDA when prompted.
-4. Select **Sonata Neural Voices** in NVDA's speech settings.
+4. Open NVDA's speech settings and select **NVDA Piper Driver**.
 
-Updating from another build uses NVDA's normal add-on installation process.
-The installer does not overwrite an existing voice directory with different
-bytes.
+## Bundled offline voices
 
-## Offline starter voices
-
-The add-on includes four voices that are installed locally with the package:
+The package includes these validated starter voices:
 
 - English: `en_US-ljspeech-medium`
 - French: `fr_FR-mls-medium`
 - German: `de_DE-mls-medium`
 - Spanish: `es_ES-carlfm-x_low`
 
-These starter voices work without an Internet connection after installation.
-Their original Piper model cards and license information are included in the
-package. See [the starter voice license inventory](addon/starterVoices/LICENSES.md)
-for sources and attribution.
+They are installed locally and can be used immediately without downloading a
+voice. Existing directories with the same voice key are never overwritten or
+merged.
 
-## Sonata Voice Manager
+## Selecting NVDA Piper Driver and changing voices
 
-Open NVDA's main menu and choose **Sonata Voice Manager**. The manager can:
+Select **NVDA Piper Driver** from NVDA's synthesizer list. Use the Voice control
+in NVDA's speech settings or synthesizer settings ring to select an installed
+voice. Speaker, rate, pitch, volume and model controls remain available where
+the voice supports them.
 
-- list the online Piper voice catalog;
-- preview catalog voices before installation;
-- download and install additional languages and voices;
-- remove installed voices; and
-- install a compatible local voice archive.
+## Voice Manager
 
-Previewing and downloading catalog voices requires Internet access. Normal
-synthesis does not require Internet access once a voice has been installed.
+Open NVDA's main menu and choose **NVDA Piper Driver voice manager**. The
+Installed tab lists local voices and can install a compatible local voice
+archive or remove a voice that is not currently active.
 
-Low- and medium-quality models usually offer a useful balance between speech
-quality, storage, and responsiveness. Where the catalog provides both
-variants, the standard variant favors quality and the fast variant favors
-responsiveness at some cost to speech quality.
+The Online tab retrieves the existing Piper catalog. You can browse voices by
+language and quality, listen to a preview, and install a standard or available
+fast variant. Downloads are validated and installed atomically.
 
-After adding or removing voices, restart NVDA if the available voice list does
-not refresh immediately.
+## Internet and offline behavior
 
-## Uninstalling or updating
+Internet access is needed for:
 
-Use NVDA's Add-on Store or Add-on Manager to disable, update, or remove Sonata
-Neural Voices, then restart NVDA. Voice files downloaded into the NVDA user
-configuration may remain so that an add-on update does not destroy user data.
-Use Sonata Voice Manager to remove voices you no longer want. The bundled
-starter voices are offered again on a later installation only when their target
-directories do not already exist.
+- refreshing the online catalog;
+- listening to online previews; and
+- downloading new voices.
+
+Normal synthesis does not require Internet access once a voice is installed.
+Bundled starter voices and voices installed through Voice Manager remain usable
+offline.
+
+## Voice variants
+
+Some catalog entries offer both a standard model and a separate fast/RT model.
+The fast variant can improve responsiveness with a possible quality trade-off.
+Variants are shown only when the catalog and installed model files actually
+provide them.
+
+## Existing Sonata Neural Voices 3.1.1 users
+
+NVDA Piper Driver uses a new add-on ID, so NVDA may temporarily show it beside
+Sonata Neural Voices 3.1.1. Both use the same local voice library. Install and
+verify NVDA Piper Driver first, then remove the old Sonata Neural Voices add-on
+and restart NVDA. Removing the old add-on does not remove installed voices.
+
+The internal synthesizer ID remains `sonata_neural_voices`. After migration,
+reselect **NVDA Piper Driver** in NVDA's speech settings if necessary.
+
+## Voice storage
+
+Installed voices are stored under:
+
+```text
+<NVDA configPath>\sonata\voices\piper
+```
+
+This path is intentionally unchanged so existing downloaded voices remain
+available after upgrading or rebranding.
+
+## Updating and uninstalling
+
+Install a newer package over NVDA Piper Driver when an update is available and
+restart NVDA. To uninstall, use NVDA's Add-on Store or Add-on Manager and restart
+NVDA. Uninstalling the add-on leaves the shared local voice directory intact;
+voices may be removed separately through Voice Manager or manually by the user.
 
 ## Characteristics and limitations
 
-- Neural voices use more disk space and CPU than NVDA's built-in eSpeak NG.
-- Responsiveness varies with model quality and computer performance.
-- Pronunciation and audio quality reflect the datasets used to train each
-  voice and may vary between languages and speakers.
-- Online catalog previews and downloads depend on third-party Piper hosting;
-  already installed voices remain usable offline.
-- This maintained build currently targets Windows AMD64 only.
+- Neural voice responsiveness and pronunciation depend on the selected model,
+  language and quality level.
+- Low and medium models are usually more responsive than high-quality models.
+- Online catalog, preview and download features naturally require network
+  access.
+- The bundled backend is for 64-bit Windows and is not a 32-bit build.
 
-## Project history and support
+## Original project and attribution
 
-Musharraf Omer created the original Sonata project and Sonata NVDA add-on. This
-NVDA 2026 AMD64 / CPython 3.13 adaptation is maintained by Hosein Rezaii
-<rezaii.hosein@gmail.com>. Please report fork-specific problems at the
-[maintained repository](https://github.com/rezaei-hossein-python/sonata-nvda/issues).
-The [original upstream repository](https://github.com/mush42/sonata-nvda)
-remains documented for attribution and project history.
+NVDA Piper Driver is a maintained adaptation of
+[Sonata Neural Voices](https://github.com/mush42/sonata-nvda), originally
+created by **Musharraf Omer**. The Sonata engine, Piper-related components,
+third-party native libraries and bundled voice models retain their original
+notices, model cards and license material. This fork does not claim original
+authorship of Sonata.
+
+## Maintainer and source
+
+- Current fork maintainer: **Hosein Rezaii**
+- Contact: **rezaii.hosein@gmail.com**
+- Maintained source: <https://github.com/rezaei-hossein-python/sonata-nvda>
+- Original upstream: <https://github.com/mush42/sonata-nvda>
 
 ## Licensing
 
-The add-on source remains licensed under GNU GPL v2; see [COPYING.txt](COPYING.txt).
-Copyright and original-author notices are preserved. Bundled native components
-retain their own license notices under `addon/synthDrivers/sonata_neural_voices/bin/NOTICES`.
-Bundled voice models are separate data works and retain their model cards and
-individual license terms.
+The add-on is distributed under the GNU General Public License version 2. See
+`COPYING.txt`. Third-party notices are retained under
+`addon/synthDrivers/sonata_neural_voices/bin/NOTICES`, and each bundled starter
+voice includes its Piper `MODEL_CARD`. See `addon/starterVoices/LICENSES.md` and
+`addon/starterVoices/manifest.json` for voice provenance, licensing and hashes.

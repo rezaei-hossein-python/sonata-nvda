@@ -25,12 +25,19 @@ def main():
     args = parser.parse_args()
     package = args.package.resolve()
     profile = args.profile.resolve()
-    addon = profile / "addons" / "sonata_neural_voices"
+    addon = profile / "addons" / "nvdaPiperDriver"
     if profile.exists():
         shutil.rmtree(profile)
     addon.mkdir(parents=True)
     with zipfile.ZipFile(package) as archive:
         archive.extractall(addon)
+    addon_manifest = (addon / "manifest.ini").read_text(encoding="utf-8-sig")
+    if "name = nvdaPiperDriver" not in addon_manifest:
+        raise RuntimeError("Unexpected add-on ID in package manifest")
+    if 'summary = "NVDA Piper Driver"' not in addon_manifest:
+        raise RuntimeError("Unexpected display name in package manifest")
+    if "version = 3.2.0" not in addon_manifest:
+        raise RuntimeError("Unexpected version in package manifest")
 
     global_vars = types.ModuleType("globalVars")
     global_vars.appArgs = types.SimpleNamespace(configPath=str(profile))
@@ -73,6 +80,10 @@ def main():
     )
     print(json.dumps({
         "addon_install": True,
+        "addon_discovered": addon.is_dir(),
+        "addon_id": "nvdaPiperDriver",
+        "addon_display_name": "NVDA Piper Driver",
+        "addon_version": "3.2.0",
         "starter_voice_count": len(installed),
         "starter_voices_visible": installed == expected,
         "starter_voices_offline": True,
